@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>🐰 UsagiDB Demo</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+      }
+      button {
+        margin: 5px;
+        padding: 8px 16px;
+        cursor: pointer;
+      }
+      #output {
+        background: #f5f5f5;
+        padding: 15px;
+        border-radius: 5px;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🐰 UsagiDB (MoonBit版)</h1>
+    <button onclick="createDB()">Create DB</button>
+    <button onclick="insertData()">Insert</button>
+    <button onclick="scanData()">Scan</button>
+    <button onclick="showStats()">Stats</button>
+    <button onclick="serializeDB()">Serialize</button>
+    <button onclick="clearOutput()">Clear</button>
+    <pre id="output"></pre>
+
+    <!-- MoonBitコンパイル済みJS -->
+    <script src="./target/js/release/build/cmd/main/main.js"></script>
+
+    <script>
+      const out = document.getElementById("output");
+      let db = null;
+
+      function log(msg) {
+        out.textContent += msg + "\n";
+        console.log(msg);
+      }
+
+      function clearOutput() {
+        out.textContent = "";
+      }
+
+      function createDB() {
+        db = UsagiDB.create(50); // threshold=50
+        log("✅ DB created (threshold=50)");
+      }
+
+      function insertData() {
+        if (!db) {
+          log("⚠️ DB not created. Creating...");
+          createDB();
+        }
+
+        // Int64形式のタイムスタンプを作成
+        const now = Date.now();
+        const ts = UsagiDB.toInt64(now % 2147483647); // Int範囲内に収める
+        const temp = 20 + Math.random() * 10;
+        const sensor = Math.random() > 0.5 ? "sensor-1" : "sensor-2";
+
+        // Value配列を作成
+        const values = [new UsagiDB.Float(temp), new UsagiDB.String(sensor)];
+
+        UsagiDB.insert(db, ts, values);
+        log(
+          `📝 Inserted: ts=${now}, temp=${temp.toFixed(2)}°C, sensor=${sensor}`
+        );
+      }
+
+      function scanData() {
+        if (!db) {
+          log("⚠️ DB not created");
+          return;
+        }
+
+        // Int64の範囲: {hi, lo} 形式
+        const start = { hi: 0, lo: 0 };
+        const end = { hi: 0x7fffffff, lo: -1 }; // MAX_INT64
+
+        const rows = UsagiDB.scan(db, start, end);
+        log(`📊 Scan result: ${rows.length} rows`);
+
+        // 各行の内容を表示（最大10行）
+        const showCount = Math.min(rows.length, 10);
+        for (let i = 0; i < showCount; i++) {
+          const row = rows[i];
+          const tsLo = row.ts.lo >>> 0; // unsigned として表示
+          let valStr = "";
+          for (const v of row.values) {
+            if (v.$tag === 2) {
+              // Float
+              valStr += v._0.toFixed(2) + "°C, ";
+            } else if (v.$tag === 3) {
+              // String
+              valStr += v._0 + ", ";
+            }
+          }
+          log(`  [${i}] ts=${tsLo}, ${valStr.slice(0, -2)}`);
+        }
+        if (rows.length > 10) {
+          log(`  ... and ${rows.length - 10} more rows`);
+        }
+      }
+
+      function showStats() {
+        if (!db) {
+          log("⚠️ DB not created");
+          return;
+        }
+        const stats = UsagiDB.stats(db);
+        log("📈 " + stats);
+      }
+
+      function serializeDB() {
+        if (!db) {
+          log("⚠️ DB not created");
+          return;
+        }
+        const json = UsagiDB.serialize(db);
+        log(`💾 Serialized: ${json.length} bytes`);
+        log(`   Preview: ${json.substring(0, 100)}...`);
+      }
+
+      // ページ読み込み時のメッセージ
+      log("🐰 UsagiDB (MoonBit版) loaded");
+      log("   Click 'Create DB' to start");
+    </script>
+  </body>
+</html>
