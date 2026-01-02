@@ -94,4 +94,4 @@ Output: `target/js/release/build/cmd/main/main.js`
 
 ## License
 
-MIT License
+MPL-2.0
