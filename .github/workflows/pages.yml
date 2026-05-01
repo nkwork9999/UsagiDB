@@ -10,7 +10,6 @@ permissions:
   pages: write
   id-token: write
 
-# Don't queue more than one deploy at a time, but let in-flight runs finish.
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -26,40 +25,46 @@ jobs:
 
       - name: Install MoonBit
         run: |
+          set -x
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
+          ls -la "$HOME/.moon/bin" || true
 
       - name: Show MoonBit version
-        run: moon version --all
-
-      - name: Build JS target
         run: |
+          which moon
+          moon version --all
+
+      - name: Build JS target (verbose)
+        run: |
+          set -x
           moon check --target js
           moon build --target js
-          echo "=== Listing target output ==="
-          ls -la target/ || true
-          ls -la target/js/ || true
-          ls -la target/js/release/ || true
-          ls -la target/js/release/build/ || true
-          echo "=== Bundles found ==="
-          find target -name "*.js" -type f | head -20
+          echo "=== target tree ==="
+          find target -type d 2>/dev/null | sort | head -60
+          echo "=== JS files ==="
+          find target -name "*.js" -type f 2>/dev/null
 
       - name: Stage demo site
         run: |
+          set -e
           mkdir -p _site
           cp index.html sw.js _site/
           cp -r web _site/
-          # MoonBit JS bundles. Use rsync rather than `cp -r src/.` because
-          # different coreutils versions disagree on the dot syntax.
-          if [ -d target/js/release/build ]; then
-            mkdir -p _site/target/js/release/build
-            cp -r target/js/release/build/* _site/target/js/release/build/
-          else
-            echo "ERROR: target/js/release/build not found — did the build succeed?"
+          # MoonBit's build dir layout has shifted between versions; locate
+          # any `build/` directory under `target/js/` and copy from there
+          # into the path that index.html expects.
+          BUILD_DIR=$(find target/js -type d -name build -print -quit 2>/dev/null || true)
+          if [ -z "$BUILD_DIR" ]; then
+            echo "FATAL: no build/ subdir found under target/js"
+            find target -type d
             exit 1
           fi
+          echo "Using BUILD_DIR=$BUILD_DIR"
+          mkdir -p _site/target/js/release/build
+          cp -r "$BUILD_DIR"/. _site/target/js/release/build/
           echo "=== _site contents ==="
-          find _site -maxdepth 6 -type f | head -30
+          find _site -maxdepth 6 -type f | head -40
 
       - uses: actions/configure-pages@v5
 
