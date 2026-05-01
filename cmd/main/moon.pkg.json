@@ -2,8 +2,59 @@
   "is-main": true,
   "import": [
     {
-      "path": "username/202512usagidb",
+      "path": "nkwork9999/usagidb",
       "alias": "lib"
+    },
+    {
+      "path": "nkwork9999/usagidb/core",
+      "alias": "core"
+    },
+    {
+      "path": "nkwork9999/usagidb/ts",
+      "alias": "ts"
+    },
+    {
+      "path": "nkwork9999/usagidb/stream",
+      "alias": "stream"
+    },
+    {
+      "path": "nkwork9999/usagidb/log",
+      "alias": "log"
     }
-  ]
+  ],
+  "link": {
+    "js": {
+      "exports": [
+        "create",
+        "to_int64",
+        "value_float",
+        "value_string",
+        "value_int",
+        "insert",
+        "scan",
+        "stats",
+        "serialize",
+        "deserialize",
+        "stream_keep_last_n",
+        "stream_downsample_ohlc",
+        "stream_dead_band",
+        "stream_put",
+        "stream_query",
+        "log_enable",
+        "log_produce_string",
+        "log_subscribe",
+        "log_poll",
+        "log_list_topics",
+        "log_serialize",
+        "log_deserialize",
+        "stream_serialize",
+        "stream_restore",
+        "sync_pull",
+        "sync_apply",
+        "sync_local_seq",
+        "sync_pull_range"
+      ],
+      "format": "esm"
+    }
+  }
 }

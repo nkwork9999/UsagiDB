@@ -1,0 +1,59 @@
+name: Deploy demo to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Don't queue more than one deploy at a time, but let in-flight runs finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Show MoonBit version
+        run: |
+          moon version --all
+          moon update
+
+      - name: Build JS target
+        run: moon build --target js
+
+      - name: Stage demo site
+        run: |
+          mkdir -p _site
+          # Demo entry point + service worker (must live at site root for scope).
+          cp index.html sw.js _site/
+          # Canvas-chart sub-page.
+          cp -r web _site/
+          # MoonBit JS bundles (referenced by index.html and web/loader.js via
+          # `./target/js/release/build/...`).
+          mkdir -p _site/target/js/release/build
+          cp -r target/js/release/build/. _site/target/js/release/build/
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

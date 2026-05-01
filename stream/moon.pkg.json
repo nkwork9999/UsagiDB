@@ -1,0 +1,8 @@
+{
+  "import": [
+    {
+      "path": "nkwork9999/usagidb/core",
+      "alias": "core"
+    }
+  ]
+}

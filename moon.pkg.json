@@ -1,1 +1,32 @@
-{}
+{
+  "import": [
+    {
+      "path": "nkwork9999/usagidb/core",
+      "alias": "core"
+    },
+    {
+      "path": "nkwork9999/usagidb/ts",
+      "alias": "ts"
+    },
+    {
+      "path": "nkwork9999/usagidb/stream",
+      "alias": "stream"
+    },
+    {
+      "path": "nkwork9999/usagidb/log",
+      "alias": "log"
+    },
+    {
+      "path": "nkwork9999/usagidb/search",
+      "alias": "search"
+    },
+    {
+      "path": "nkwork9999/usagidb/vector",
+      "alias": "vector"
+    },
+    {
+      "path": "nkwork9999/usagidb/sql",
+      "alias": "sql"
+    }
+  ]
+}

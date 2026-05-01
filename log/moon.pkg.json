@@ -1,0 +1,12 @@
+{
+  "import": [
+    {
+      "path": "nkwork9999/usagidb/core",
+      "alias": "core"
+    },
+    {
+      "path": "nkwork9999/usagidb/stream",
+      "alias": "stream"
+    }
+  ]
+}

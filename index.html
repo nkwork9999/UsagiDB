@@ -4,132 +4,618 @@
     <meta charset="UTF-8" />
     <title>🐰 UsagiDB Demo</title>
     <style>
+      :root {
+        color-scheme: light dark;
+      }
       body {
-        font-family: sans-serif;
+        font-family: system-ui, sans-serif;
         padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      h1 {
+        margin-bottom: 4px;
+      }
+      h2 {
+        font-size: 16px;
+        margin-bottom: 6px;
+      }
+      .tag {
+        opacity: 0.6;
+        font-size: 13px;
+        margin-top: 0;
+      }
+      .panels {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 14px;
+        margin-top: 16px;
+      }
+      .panel {
+        border: 1px solid #ccc4;
+        border-radius: 8px;
+        padding: 12px;
+        background: #f7f7f900;
       }
       button {
-        margin: 5px;
-        padding: 8px 16px;
+        margin: 2px 3px 2px 0;
+        padding: 5px 9px;
         cursor: pointer;
+        font-size: 12px;
       }
-      #output {
-        background: #f5f5f5;
-        padding: 15px;
+      pre {
+        background: #11151c;
+        color: #d6d8de;
+        padding: 10px;
         border-radius: 5px;
         white-space: pre-wrap;
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        min-height: 240px;
+        margin-top: 8px;
+        line-height: 1.45;
+        max-height: 320px;
+        overflow: auto;
+      }
+      .pill {
+        display: inline-block;
+        padding: 1px 6px;
+        background: #3b82f6;
+        color: white;
+        border-radius: 8px;
+        font-size: 10px;
+        margin-left: 4px;
+      }
+      .pill.off {
+        background: #6b7280;
+      }
+      input[type="text"] {
+        width: 100px;
+        padding: 4px 6px;
+        font-size: 12px;
       }
     </style>
   </head>
   <body>
-    <h1>🐰 UsagiDB (MoonBit版)</h1>
-    <button onclick="createDB()">Create DB</button>
-    <button onclick="insertData()">Insert</button>
-    <button onclick="scanData()">Scan</button>
-    <button onclick="showStats()">Stats</button>
-    <button onclick="serializeDB()">Serialize</button>
-    <button onclick="clearOutput()">Clear</button>
-    <pre id="output"></pre>
+    <h1>🐰 UsagiDB</h1>
+    <p class="tag">
+      Multi-modal: <strong>ts</strong>=HTAP TS-DB,
+      <strong>stream</strong>=jellyfish_moon, <strong>log</strong>=Kafka-like.
+      &nbsp;|&nbsp; <a href="./web/">🌊 realtime canvas chart →</a>
+    </p>
 
-    <!-- MoonBitコンパイル済みJS -->
-    <script src="./target/js/release/build/cmd/main/main.js"></script>
+    <div class="panels">
+      <div class="panel">
+        <h2>📦 ts mode</h2>
+        <button onclick="ts_create()">Create</button>
+        <button onclick="ts_insert()">Insert</button>
+        <button onclick="ts_scan()">Scan</button>
+        <button onclick="ts_stats()">Stats</button>
+        <button onclick="ts_serialize()">Serialize</button>
+        <button onclick="clear_ts()">Clear</button>
+        <pre id="ts_out"></pre>
+      </div>
 
-    <script>
-      const out = document.getElementById("output");
+      <div class="panel">
+        <h2>🌊 stream mode</h2>
+        <button onclick="stream_setup()">Downsample 1s OHLC</button>
+        <button onclick="stream_setup_keep_last(10)">KeepLastN(10)</button>
+        <button onclick="stream_setup_dead_band(0.5)">DeadBand(0.5)</button>
+        <button onclick="stream_push_random()">Push 30</button>
+        <button onclick="stream_show()">Query</button>
+        <button onclick="clear_stream()">Clear</button>
+        <pre id="stream_out"></pre>
+      </div>
+
+      <div class="panel" style="grid-column: 1 / span 3;">
+        <h2>🔄 sync transport (ts mode)
+          <span id="ws_pill" class="pill off">ws: off</span>
+          <span id="bgsync_pill" class="pill off">bg-sync: off</span>
+          <span id="p2p_pill" class="pill off">p2p: off</span>
+        </h2>
+        <input type="text" id="ws_url" value="ws://localhost:9000/sync" style="width:240px"/>
+        <button onclick="ws_connect()">Connect</button>
+        <button onclick="ws_disconnect()">Disconnect</button>
+        <button onclick="ws_pull()">Pull</button>
+        <button onclick="ws_push()">Push</button>
+        <button onclick="ws_push_range()">Push (last 10s shape)</button>
+        &nbsp;
+        <button onclick="enable_bg_sync()">⏰ Background Sync</button>
+        <button onclick="toggle_p2p()">⇆ P2P (intra-tab)</button>
+        <button onclick="clear_sync()">Clear</button>
+        <pre id="sync_out" style="min-height:120px"></pre>
+      </div>
+
+      <div class="panel">
+        <h2>📜 log mode <span id="bcast_pill" class="pill off">bcast: off</span><span id="opfs_pill" class="pill off">opfs: off</span></h2>
+        <button onclick="log_setup()">Subscribe</button>
+        <button onclick="log_produce_one()">Produce</button>
+        <button onclick="log_poll_some()">Poll(5)</button>
+        <button onclick="log_topics()">Topics</button>
+        <br/>
+        <button onclick="toggle_bcast()">⇆ BroadcastChannel</button>
+        <button onclick="toggle_opfs()">💾 OPFS auto-save</button>
+        <button onclick="opfs_load()">📂 Load OPFS</button>
+        <button onclick="clear_log()">Clear</button>
+        <pre id="log_out"></pre>
+      </div>
+    </div>
+
+    <script type="module">
+      import {
+        create,
+        to_int64,
+        value_float,
+        value_string,
+        insert,
+        scan,
+        stats,
+        serialize,
+        deserialize,
+        stream_keep_last_n,
+        stream_downsample_ohlc,
+        stream_dead_band,
+        stream_put,
+        stream_query,
+        stream_serialize,
+        stream_restore,
+        log_enable,
+        log_produce_string,
+        log_subscribe,
+        log_poll,
+        log_list_topics,
+        log_serialize,
+        log_deserialize,
+        sync_pull,
+        sync_apply,
+        sync_local_seq,
+        sync_pull_range,
+      } from "./target/js/release/build/cmd/main/main.js";
+
+      const ts_out = document.getElementById("ts_out");
+      const stream_out = document.getElementById("stream_out");
+      const log_out = document.getElementById("log_out");
+      const sync_out = document.getElementById("sync_out");
       let db = null;
 
-      function log(msg) {
-        out.textContent += msg + "\n";
-        console.log(msg);
-      }
+      const log_ts = (m) => (ts_out.textContent += m + "\n");
+      const log_stream = (m) => (stream_out.textContent += m + "\n");
+      const log_log = (m) => (log_out.textContent += m + "\n");
+      const log_sync = (m) => (sync_out.textContent += m + "\n");
+      window.clear_ts = () => (ts_out.textContent = "");
+      window.clear_stream = () => (stream_out.textContent = "");
+      window.clear_log = () => (log_out.textContent = "");
+      window.clear_sync = () => (sync_out.textContent = "");
 
-      function clearOutput() {
-        out.textContent = "";
-      }
-
-      function createDB() {
-        db = UsagiDB.create(50); // threshold=50
-        log("✅ DB created (threshold=50)");
-      }
-
-      function insertData() {
+      function ensure_db() {
         if (!db) {
-          log("⚠️ DB not created. Creating...");
-          createDB();
+          db = create(50);
         }
+      }
 
-        // Int64形式のタイムスタンプを作成
+      // ts panel ---------------------------------------------------------------
+      window.ts_create = () => {
+        ensure_db();
+        log_ts("✅ db = create(50)  // ts mode enabled");
+      };
+      window.ts_insert = () => {
+        ensure_db();
         const now = Date.now();
-        const ts = UsagiDB.toInt64(now % 2147483647); // Int範囲内に収める
+        const ts = to_int64(now % 2147483647);
         const temp = 20 + Math.random() * 10;
         const sensor = Math.random() > 0.5 ? "sensor-1" : "sensor-2";
+        insert(db, ts, [value_float(temp), value_string(sensor)]);
+        log_ts(`📝 ts insert  temp=${temp.toFixed(2)}  sensor=${sensor}`);
+      };
+      window.ts_scan = () => {
+        ensure_db();
+        const rows = scan(db, to_int64(0), to_int64(2147483647));
+        log_ts(`📊 ${rows.length} rows`);
+        for (let i = 0; i < Math.min(rows.length, 10); i++) {
+          const r = rows[i];
+          let s = "";
+          for (const v of r.values) {
+            if (v.$tag === 2) s += v._0.toFixed(2) + "°C, ";
+            else if (v.$tag === 3) s += v._0 + ", ";
+          }
+          log_ts(`  [${i}] ts=${r.ts.lo >>> 0}  ${s.slice(0, -2)}`);
+        }
+      };
+      window.ts_stats = () => {
+        ensure_db();
+        log_ts("📈 " + stats(db));
+      };
+      window.ts_serialize = () => {
+        ensure_db();
+        const json = serialize(db);
+        log_ts(`💾 ${json.length} bytes`);
+        log_ts(`   ${json.slice(0, 80)}...`);
+      };
 
-        // Value配列を作成
-        const values = [new UsagiDB.Float(temp), new UsagiDB.String(sensor)];
+      // stream panel -----------------------------------------------------------
+      window.stream_setup = () => {
+        ensure_db();
+        stream_downsample_ohlc(db, "price", to_int64(1000));
+        log_stream("✅ price → Downsample(1s, OHLC)");
+      };
+      window.stream_setup_keep_last = (n) => {
+        ensure_db();
+        stream_keep_last_n(db, "price", n);
+        log_stream(`✅ price → KeepLastN(${n})`);
+      };
+      window.stream_setup_dead_band = (th) => {
+        ensure_db();
+        stream_dead_band(db, "price", th);
+        log_stream(`✅ price → DeadBand(${th})`);
+      };
+      let sim_t = 0;
+      let sim_v = 100;
+      window.stream_push_random = () => {
+        ensure_db();
+        for (let i = 0; i < 30; i++) {
+          sim_v += (Math.random() - 0.5) * 2;
+          sim_t += 100;
+          stream_put(db, "price", sim_v, to_int64(sim_t));
+        }
+        log_stream(`📝 pushed 30 samples (t now = ${sim_t})`);
+      };
+      window.stream_show = () => {
+        ensure_db();
+        const rows = stream_query(db, "price");
+        log_stream(`📊 ${rows.length} stream rows`);
+        for (let i = 0; i < Math.min(rows.length, 12); i++) {
+          const r = rows[i];
+          if (r.$tag === 0) {
+            log_stream(`  [${i}] Point  t=${r._0.lo} v=${r._1.toFixed(2)}`);
+          } else {
+            const b = r._0;
+            log_stream(
+              `  [${i}] Candle start=${b.start.lo} O=${b.open.toFixed(2)} H=${b.high.toFixed(2)} L=${b.low.toFixed(2)} C=${b.close.toFixed(2)} n=${b.count}`,
+            );
+          }
+        }
+      };
 
-        UsagiDB.insert(db, ts, values);
-        log(
-          `📝 Inserted: ts=${now}, temp=${temp.toFixed(2)}°C, sensor=${sensor}`
-        );
+      // log panel --------------------------------------------------------------
+      const TOPIC = "events";
+      const GROUP = "panel";
+
+      window.log_setup = () => {
+        ensure_db();
+        log_enable(db);
+        log_subscribe(db, TOPIC, GROUP);
+        log_log(`✅ subscribed group="${GROUP}" → topic="${TOPIC}"`);
+      };
+
+      window.log_produce_one = () => {
+        ensure_db();
+        log_enable(db);
+        const now = Date.now();
+        const id = "id_" + (now % 100000);
+        const message = "hello @ " + new Date().toLocaleTimeString();
+        const offset = log_produce_string(db, TOPIC, id, message, to_int64(now % 2147483647));
+        log_log(`📝 produce key="${id}" → offset=${offset.lo}`);
+        if (bcast_on && bc) bc.postMessage({ kind: "produce", id, message, ts: now });
+        if (opfs_auto) schedule_opfs_save();
+      };
+
+      window.log_poll_some = () => {
+        ensure_db();
+        log_enable(db);
+        const records = log_poll(db, TOPIC, GROUP, 5);
+        log_log(`📊 polled ${records.length} record(s)`);
+        for (const r of records) {
+          const k = r.key === null ? "(no key)" : r.key._0; // Option<String> → {_0}
+          let v_str = "?";
+          const v = r.value;
+          if (v.$tag === 3) v_str = `"${v._0}"`;
+          else if (v.$tag === 1) v_str = String(v._0.lo);
+          else if (v.$tag === 2) v_str = v._0.toFixed(2);
+          log_log(`  offset=${r.offset.lo}  key=${k}  v=${v_str}`);
+        }
+      };
+
+      window.log_topics = () => {
+        ensure_db();
+        const topics = log_list_topics(db);
+        log_log(`📦 topics: [${topics.join(", ")}]`);
+      };
+
+      // BroadcastChannel cross-tab sync ---------------------------------------
+      let bc = null;
+      let bcast_on = false;
+      window.toggle_bcast = () => {
+        bcast_on = !bcast_on;
+        const pill = document.getElementById("bcast_pill");
+        if (bcast_on) {
+          bc = new BroadcastChannel("usagidb-log");
+          bc.onmessage = (e) => {
+            if (e.data.kind === "produce") {
+              ensure_db();
+              log_enable(db);
+              log_produce_string(db, TOPIC, e.data.id, e.data.message, to_int64(e.data.ts % 2147483647));
+              log_log(`⇆ remote produce: id=${e.data.id} → mirrored locally`);
+            }
+          };
+          pill.textContent = "bcast: on";
+          pill.classList.remove("off");
+          log_log("✅ BroadcastChannel('usagidb-log') opened — open another tab to sync");
+        } else {
+          if (bc) bc.close();
+          bc = null;
+          pill.textContent = "bcast: off";
+          pill.classList.add("off");
+          log_log("⏸ BroadcastChannel closed");
+        }
+      };
+
+      // OPFS auto-save (switchable) — covers ts + stream + log in one file.
+      const OPFS_FILE = "usagidb-all.json";
+      let opfs_auto = false;
+      let opfs_save_pending = false;
+
+      async function opfs_write(name, content) {
+        const root = await navigator.storage.getDirectory();
+        const handle = await root.getFileHandle(name, { create: true });
+        const writable = await handle.createWritable();
+        await writable.write(content);
+        await writable.close();
+      }
+      async function opfs_read(name) {
+        const root = await navigator.storage.getDirectory();
+        const handle = await root.getFileHandle(name);
+        const file = await handle.getFile();
+        return await file.text();
       }
 
-      function scanData() {
-        if (!db) {
-          log("⚠️ DB not created");
-          return;
+      function snapshot_all() {
+        // Each mode is optional; omit when disabled.
+        const blob = {
+          ts: db && db.ts.$tag !== undefined ? null : (db && db.ts ? serialize(db) : null),
+          stream: db && db.stream ? stream_serialize(db) : null,
+          log: db && db.log ? log_serialize(db) : null,
+        };
+        // MoonBit Option in JS: `Some(x)` is `{$tag:0,_0:x}`, `None` is `null`.
+        // Our umbrella exposes ts/stream/log as plain `?` — JS sees the value
+        // (or `null` for None). The check above tries both shapes.
+        return JSON.stringify(blob);
+      }
+
+      function schedule_opfs_save() {
+        if (opfs_save_pending) return;
+        opfs_save_pending = true;
+        requestAnimationFrame(async () => {
+          opfs_save_pending = false;
+          try {
+            const text = snapshot_all();
+            await opfs_write(OPFS_FILE, text);
+          } catch (err) {
+            log_log("⚠️ opfs save failed: " + err.message);
+          }
+        });
+      }
+
+      window.toggle_opfs = () => {
+        opfs_auto = !opfs_auto;
+        const pill = document.getElementById("opfs_pill");
+        if (opfs_auto) {
+          pill.textContent = "opfs: on";
+          pill.classList.remove("off");
+          log_log("✅ OPFS auto-save on (ts+stream+log) → " + OPFS_FILE);
+          if (db) schedule_opfs_save();
+        } else {
+          pill.textContent = "opfs: off";
+          pill.classList.add("off");
+          log_log("⏸ OPFS auto-save off");
         }
+      };
 
-        // Int64の範囲: {hi, lo} 形式
-        const start = { hi: 0, lo: 0 };
-        const end = { hi: 0x7fffffff, lo: -1 }; // MAX_INT64
-
-        const rows = UsagiDB.scan(db, start, end);
-        log(`📊 Scan result: ${rows.length} rows`);
-
-        // 各行の内容を表示（最大10行）
-        const showCount = Math.min(rows.length, 10);
-        for (let i = 0; i < showCount; i++) {
-          const row = rows[i];
-          const tsLo = row.ts.lo >>> 0; // unsigned として表示
-          let valStr = "";
-          for (const v of row.values) {
-            if (v.$tag === 2) {
-              // Float
-              valStr += v._0.toFixed(2) + "°C, ";
-            } else if (v.$tag === 3) {
-              // String
-              valStr += v._0 + ", ";
+      window.opfs_load = async () => {
+        try {
+          const text = await opfs_read(OPFS_FILE);
+          const blob = JSON.parse(text);
+          // Restore ts (rebuilds the db from scratch; ts becomes the source).
+          if (blob.ts) {
+            const restored_ts = deserialize(blob.ts);
+            if (restored_ts) {
+              db = restored_ts;
+              log_log("📂 ts restored");
+            }
+          } else {
+            ensure_db();
+          }
+          // Restore log
+          if (blob.log) {
+            log_enable(db);
+            if (log_deserialize(db, blob.log)) {
+              log_log(`📂 log restored, topics: [${log_list_topics(db).join(", ")}]`);
             }
           }
-          log(`  [${i}] ts=${tsLo}, ${valStr.slice(0, -2)}`);
+          // Restore stream (caller must have configured rules manually)
+          if (blob.stream) {
+            // Ensure stream mode exists with empty config.
+            if (!db.stream) {
+              // re-create db with stream enabled? For simplicity, panic if not enabled.
+              log_stream("⚠️ stream not enabled — set up rules first then load");
+            } else if (stream_restore(db, blob.stream)) {
+              log_stream("📂 stream state restored");
+            }
+          }
+        } catch (err) {
+          log_log("⚠️ opfs load failed: " + err.message);
         }
-        if (rows.length > 10) {
-          log(`  ... and ${rows.length - 10} more rows`);
-        }
-      }
+      };
 
-      function showStats() {
-        if (!db) {
-          log("⚠️ DB not created");
+      log_ts("🐰 ts panel");
+      log_stream("🌊 stream panel");
+      log_log("📜 log panel — Subscribe → Produce → Poll. Try BroadcastChannel + OPFS!");
+      log_sync("🔄 sync — connect to a WebSocket relay to push/pull SyncPackets");
+
+      // sync transport ---------------------------------------------------------
+      let ws = null;
+      let last_pulled_seq = 0n; // BigInt to mirror Int64 wire shape
+
+      window.ws_connect = () => {
+        ensure_db();
+        const url = document.getElementById("ws_url").value;
+        try {
+          ws = new WebSocket(url);
+        } catch (err) {
+          log_sync("⚠️ connect failed: " + err.message);
           return;
         }
-        const stats = UsagiDB.stats(db);
-        log("📈 " + stats);
-      }
+        ws.onopen = () => {
+          document.getElementById("ws_pill").textContent = "ws: on";
+          document.getElementById("ws_pill").classList.remove("off");
+          log_sync("✅ connected to " + url);
+        };
+        ws.onmessage = (ev) => {
+          // Wire format: a JSON SyncPacket. Apply it locally.
+          try {
+            const result = sync_apply(db, ev.data);
+            // SyncResult is enum { Success(n), Conflict([ts]), Error(s) }
+            if (result.$tag === 0) {
+              log_sync(`📥 applied ${result._0} change(s)`);
+            } else if (result.$tag === 1) {
+              log_sync(`⚠️ ${result._0.length} conflict(s)`);
+            } else {
+              log_sync(`⚠️ error: ${result._0}`);
+            }
+          } catch (err) {
+            log_sync("⚠️ apply failed: " + err.message);
+          }
+        };
+        ws.onerror = (err) => log_sync("⚠️ ws error");
+        ws.onclose = () => {
+          document.getElementById("ws_pill").textContent = "ws: off";
+          document.getElementById("ws_pill").classList.add("off");
+          log_sync("⏸ disconnected");
+        };
+      };
 
-      function serializeDB() {
-        if (!db) {
-          log("⚠️ DB not created");
-          return;
+      window.ws_disconnect = () => {
+        if (ws) {
+          ws.close();
+          ws = null;
         }
-        const json = UsagiDB.serialize(db);
-        log(`💾 Serialized: ${json.length} bytes`);
-        log(`   Preview: ${json.substring(0, 100)}...`);
+      };
+
+      window.ws_pull = () => {
+        if (!ws || ws.readyState !== 1) return log_sync("⚠️ not connected");
+        // Send a small "pull" request — relay can interpret however.
+        const local = sync_local_seq(db);
+        ws.send(JSON.stringify({ kind: "pull", since: local }));
+        log_sync(`📤 pull request since seq=${local.lo || 0}`);
+      };
+
+      window.ws_push = () => {
+        if (!ws || ws.readyState !== 1) return enqueue_offline("push", sync_pull(db, to_int64(0)));
+        const json = sync_pull(db, to_int64(0));
+        ws.send(json);
+        log_sync(`📤 pushed packet (${json.length} bytes)`);
+      };
+
+      window.ws_push_range = () => {
+        ensure_db();
+        // Demo shape: last 10 seconds of data only.
+        const now = Date.now() % 2147483647;
+        const ts_min = to_int64(Math.max(0, now - 10000));
+        const ts_max = to_int64(now);
+        const json = sync_pull_range(db, to_int64(0), ts_min, ts_max);
+        if (!ws || ws.readyState !== 1) return enqueue_offline("push", json);
+        ws.send(json);
+        log_sync(`📤 pushed shape packet (${json.length} bytes, last 10s)`);
+      };
+
+      // Background Sync ───────────────────────────────────────────────────────
+      const OUTBOX_KEY = "usagidb_outbox";
+      const get_outbox = () => JSON.parse(localStorage.getItem(OUTBOX_KEY) || "[]");
+      const set_outbox = (arr) => localStorage.setItem(OUTBOX_KEY, JSON.stringify(arr));
+
+      function enqueue_offline(kind, body) {
+        const outbox = get_outbox();
+        outbox.push({
+          url: document.getElementById("ws_url").value.replace(/^ws/, "http"),
+          body,
+        });
+        set_outbox(outbox);
+        log_sync(`💾 offline: queued (${outbox.length} pending)`);
+        // Try to wake the SW so it can drain when online.
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ kind: "drain" });
+        }
       }
 
-      // ページ読み込み時のメッセージ
-      log("🐰 UsagiDB (MoonBit版) loaded");
-      log("   Click 'Create DB' to start");
+      // ts P2P sync via BroadcastChannel ─────────────────────────────────────
+      // Intra-tab/cross-tab same-origin only. Plug in a WebRTC RTCDataChannel
+      // (with an external signaling server) to extend across origins.
+      let p2p_bc = null;
+      let p2p_on = false;
+      window.toggle_p2p = () => {
+        const pill = document.getElementById("p2p_pill");
+        p2p_on = !p2p_on;
+        if (p2p_on) {
+          ensure_db();
+          p2p_bc = new BroadcastChannel("usagidb-ts-p2p");
+          p2p_bc.onmessage = (e) => {
+            if (e.data.kind === "sync-packet") {
+              const r = sync_apply(db, e.data.json);
+              if (r.$tag === 0) {
+                log_sync(`⇆ peer applied ${r._0} change(s)`);
+              }
+            }
+          };
+          // Auto-broadcast on every successful local push.
+          const orig_push = window.ws_push;
+          window.ws_push = () => {
+            const json = sync_pull(db, to_int64(0));
+            if (ws && ws.readyState === 1) ws.send(json);
+            if (p2p_bc) p2p_bc.postMessage({ kind: "sync-packet", json });
+            log_sync(`📤 push (ws=${ws ? "on" : "off"}, p2p=on)`);
+          };
+          pill.textContent = "p2p: on";
+          pill.classList.remove("off");
+          log_sync("✅ P2P intra-tab on. Open another tab + toggle to sync ts via BroadcastChannel.");
+        } else {
+          if (p2p_bc) p2p_bc.close();
+          p2p_bc = null;
+          pill.textContent = "p2p: off";
+          pill.classList.add("off");
+          log_sync("⏸ P2P off");
+        }
+      };
+
+      window.enable_bg_sync = async () => {
+        try {
+          const reg = await navigator.serviceWorker.register("./sw.js");
+          await navigator.serviceWorker.ready;
+          // SW asks the page for the outbox on each drain attempt.
+          navigator.serviceWorker.addEventListener("message", (e) => {
+            if (e.data.kind === "request-outbox" && e.ports.length) {
+              const outbox = get_outbox();
+              e.ports[0].postMessage({ outbox });
+              set_outbox([]);
+            } else if (e.data.kind === "outbox-drained") {
+              log_sync(`📤 background drain: sent ${e.data.sent}`);
+            }
+          });
+          // Register the periodic background sync tag (Chromium only).
+          if (reg.sync) {
+            await reg.sync.register("usagidb");
+          }
+          // Fall back: drain on regular online events.
+          window.addEventListener("online", () => {
+            if (navigator.serviceWorker.controller) {
+              navigator.serviceWorker.controller.postMessage({ kind: "drain" });
+            }
+          });
+          document.getElementById("bgsync_pill").textContent = "bg-sync: on";
+          document.getElementById("bgsync_pill").classList.remove("off");
+          log_sync("✅ Service Worker registered. Offline pushes queue → flush on reconnect.");
+        } catch (err) {
+          log_sync("⚠️ SW register failed: " + err.message);
+        }
+      };
     </script>
   </body>
 </html>
