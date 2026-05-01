@@ -30,24 +30,36 @@ jobs:
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
       - name: Show MoonBit version
-        run: |
-          moon version --all
-          moon update
+        run: moon version --all
 
       - name: Build JS target
-        run: moon build --target js
+        run: |
+          moon check --target js
+          moon build --target js
+          echo "=== Listing target output ==="
+          ls -la target/ || true
+          ls -la target/js/ || true
+          ls -la target/js/release/ || true
+          ls -la target/js/release/build/ || true
+          echo "=== Bundles found ==="
+          find target -name "*.js" -type f | head -20
 
       - name: Stage demo site
         run: |
           mkdir -p _site
-          # Demo entry point + service worker (must live at site root for scope).
           cp index.html sw.js _site/
-          # Canvas-chart sub-page.
           cp -r web _site/
-          # MoonBit JS bundles (referenced by index.html and web/loader.js via
-          # `./target/js/release/build/...`).
-          mkdir -p _site/target/js/release/build
-          cp -r target/js/release/build/. _site/target/js/release/build/
+          # MoonBit JS bundles. Use rsync rather than `cp -r src/.` because
+          # different coreutils versions disagree on the dot syntax.
+          if [ -d target/js/release/build ]; then
+            mkdir -p _site/target/js/release/build
+            cp -r target/js/release/build/* _site/target/js/release/build/
+          else
+            echo "ERROR: target/js/release/build not found — did the build succeed?"
+            exit 1
+          fi
+          echo "=== _site contents ==="
+          find _site -maxdepth 6 -type f | head -30
 
       - uses: actions/configure-pages@v5
 
