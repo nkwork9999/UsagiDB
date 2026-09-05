@@ -1,4 +1,5 @@
-///| Time-range filter narrows the result set.
+///|
+/// Time-range filter narrows the result set.
 test "query_time_range" {
   let db = @ts.TimeSeriesStore::with_threshold(50)
   let _ = db.insert(0L, [@core.Value::Float(1.0)])
@@ -12,7 +13,8 @@ test "query_time_range" {
   }
 }
 
-///| AVG on numeric column.
+///|
+/// AVG on numeric column.
 test "query_avg" {
   let db = @ts.TimeSeriesStore::with_threshold(50)
   let _ = db.insert(0L, [@core.Value::Float(10.0)])
@@ -25,7 +27,8 @@ test "query_avg" {
   }
 }
 
-///| Column equality filter combined with time range.
+///|
+/// Column equality filter combined with time range.
 test "query_col_eq_filter" {
   let db = @ts.TimeSeriesStore::with_threshold(50)
   let _ = db.insert(0L, [@core.Value::Float(20.0), @core.Value::String("a")])
@@ -40,7 +43,8 @@ test "query_col_eq_filter" {
   }
 }
 
-///| MAX/MIN/SUM run over numeric columns.
+///|
+/// MAX/MIN/SUM run over numeric columns.
 test "query_min_max_sum" {
   let db = @ts.TimeSeriesStore::with_threshold(50)
   let _ = db.insert(0L, [@core.Value::Int(5L)])

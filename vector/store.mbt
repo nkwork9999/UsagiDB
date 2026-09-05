@@ -23,20 +23,22 @@ pub struct VectorStore {
   records : Array[VectorRecord]
 }
 
-///| New empty store with the given embedding dimension and metric.
+///|
+/// New empty store with the given embedding dimension and metric.
 pub fn VectorStore::new(
   dim : Int,
-  metric~ : DistanceMetric = Cosine,
+  metric? : DistanceMetric = Cosine,
 ) -> VectorStore {
   { dim, metric, records: [] }
 }
 
-///| Add a record. Mismatched dim is silently ignored — caller should validate.
+///|
+/// Add a record. Mismatched dim is silently ignored — caller should validate.
 pub fn VectorStore::insert(
   self : VectorStore,
   id : String,
   embedding : Array[Double],
-  metadata~ : @core.Value = @core.Value::Null,
+  metadata? : @core.Value = @core.Value::Null,
 ) -> Bool {
   if embedding.length() != self.dim {
     return false
@@ -84,7 +86,11 @@ fn norm(a : Array[Double]) -> Double {
   for v in a {
     s = s + v * v
   }
-  if s <= 0.0 { 0.0 } else { s.sqrt() }
+  if s <= 0.0 {
+    0.0
+  } else {
+    s.sqrt()
+  }
 }
 
 ///|
@@ -98,7 +104,8 @@ fn euclid(a : Array[Double], b : Array[Double]) -> Double {
   s.sqrt()
 }
 
-///| `score` is "higher is better" for Cosine/Dot, "lower is better" for
+///|
+/// `score` is "higher is better" for Cosine/Dot, "lower is better" for
 /// Euclidean. The returned array is sorted such that index 0 is the closest
 /// match for whichever metric was configured.
 pub fn VectorStore::search(
@@ -115,7 +122,11 @@ pub fn VectorStore::search(
     let s = match self.metric {
       Cosine => {
         let n = norm(r.embedding) * q_norm
-        if n <= 0.0 { 0.0 } else { dot(query, r.embedding) / n }
+        if n <= 0.0 {
+          0.0
+        } else {
+          dot(query, r.embedding) / n
+        }
       }
       Dot => dot(query, r.embedding)
       Euclidean => euclid(query, r.embedding)

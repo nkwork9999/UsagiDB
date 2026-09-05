@@ -105,11 +105,9 @@ fn extract_time_range(filters : Array[QueryFilter]) -> (Int64, Int64) {
   (lo, hi)
 }
 
-///| Run the query against `store`. Returns a `QueryResult`.
-pub fn Query::execute(
-  self : Query,
-  store : @ts.TimeSeriesStore,
-) -> QueryResult {
+///|
+/// Run the query against `store`. Returns a `QueryResult`.
+pub fn Query::execute(self : Query, store : @ts.TimeSeriesStore) -> QueryResult {
   let (lo, hi) = extract_time_range(self.filters)
   // First narrow by time.
   let mut rows = store.scan(lo, hi)

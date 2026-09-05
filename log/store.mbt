@@ -44,39 +44,42 @@ fn LogStore::ensure_topic(self : LogStore, name : String) -> Topic {
   }
 }
 
-///| Composite group×topic key. The `\x1f` (Unit Separator) is unlikely to
+///|
+/// Composite group×topic key. The `\x1f` (Unit Separator) is unlikely to
 /// appear in either string and avoids clashes that "groupA-topic" could have.
 fn group_key(group : String, topic : String) -> String {
   group + "\u{1f}" + topic
 }
 
-///| Create a topic up front (optional — produce will auto-create).
+///|
+/// Create a topic up front (optional — produce will auto-create).
 pub fn LogStore::create_topic(self : LogStore, name : String) -> Unit {
   let _ = self.ensure_topic(name)
-
 }
 
-///| Set retention. Either argument may be `None` to mean unbounded.
+///|
+/// Set retention. Either argument may be `None` to mean unbounded.
 pub fn LogStore::set_retention(
   self : LogStore,
   topic : String,
-  max_records~ : Int? = None,
-  max_age_ms~ : Int64? = None,
+  max_records? : Int? = None,
+  max_age_ms? : Int64? = None,
 ) -> Unit {
   let t = self.ensure_topic(topic)
   t.retention.max_records = max_records
   t.retention.max_age_ms = max_age_ms
 }
 
-///| Append a record to `topic`, return the assigned offset. Auto-creates the
+///|
+/// Append a record to `topic`, return the assigned offset. Auto-creates the
 /// topic if it doesn't exist. Eagerly applies `max_records` retention.
 pub fn LogStore::produce(
   self : LogStore,
   topic : String,
   value : @core.Value,
-  key~ : String? = None,
-  timestamp~ : Int64 = 0L,
-  headers~ : Array[(String, String)] = [],
+  key? : String? = None,
+  timestamp? : Int64 = 0L,
+  headers? : Array[(String, String)] = [],
 ) -> Int64 {
   let t = self.ensure_topic(topic)
   let offset = t.next_offset
@@ -87,14 +90,14 @@ pub fn LogStore::produce(
     Some(n) =>
       while t.records.length() > n {
         let _ = t.records.remove(0)
-
       }
     None => ()
   }
   offset
 }
 
-///| Register a consumer group on a topic at offset 0 (idempotent — does
+///|
+/// Register a consumer group on a topic at offset 0 (idempotent — does
 /// nothing if already subscribed). Future `poll` calls advance from that
 /// committed offset.
 pub fn LogStore::subscribe(
@@ -109,7 +112,8 @@ pub fn LogStore::subscribe(
   }
 }
 
-///| Read up to `max` records from the consumer group's committed offset.
+///|
+/// Read up to `max` records from the consumer group's committed offset.
 /// Auto-advances the committed offset (use `peek` + `commit` for manual
 /// control). Returns an empty array if the topic doesn't exist.
 pub fn LogStore::poll(
@@ -145,7 +149,8 @@ pub fn LogStore::poll(
   result
 }
 
-///| Peek without advancing the committed offset.
+///|
+/// Peek without advancing the committed offset.
 pub fn LogStore::peek(
   self : LogStore,
   topic : String,
@@ -176,7 +181,8 @@ pub fn LogStore::peek(
   result
 }
 
-///| Manually commit the consumer group's offset. After `commit(t, g, N)`,
+///|
+/// Manually commit the consumer group's offset. After `commit(t, g, N)`,
 /// next `poll` returns records with `offset > N`.
 pub fn LogStore::commit(
   self : LogStore,
@@ -187,7 +193,8 @@ pub fn LogStore::commit(
   self.group_offsets[group_key(group, topic)] = offset + 1L
 }
 
-///| Move the consumer group's offset to `offset` (rewind or fast-forward).
+///|
+/// Move the consumer group's offset to `offset` (rewind or fast-forward).
 pub fn LogStore::seek(
   self : LogStore,
   topic : String,
@@ -197,7 +204,8 @@ pub fn LogStore::seek(
   self.group_offsets[group_key(group, topic)] = offset
 }
 
-///| Current committed offset (= next offset to read) for the group.
+///|
+/// Current committed offset (= next offset to read) for the group.
 pub fn LogStore::current_offset(
   self : LogStore,
   topic : String,
@@ -209,7 +217,8 @@ pub fn LogStore::current_offset(
   }
 }
 
-///| Names of all topics in the store.
+///|
+/// Names of all topics in the store.
 pub fn LogStore::list_topics(self : LogStore) -> Array[String] {
   let names : Array[String] = []
   for entry in self.topics {
@@ -218,7 +227,8 @@ pub fn LogStore::list_topics(self : LogStore) -> Array[String] {
   names
 }
 
-///| (earliest_offset, latest_offset, count) for a topic, or `None`.
+///|
+/// (earliest_offset, latest_offset, count) for a topic, or `None`.
 pub fn LogStore::topic_info(
   self : LogStore,
   topic : String,
@@ -236,7 +246,8 @@ pub fn LogStore::topic_info(
   }
 }
 
-///| Drop records older than `now - max_age_ms`. Returns the count removed.
+///|
+/// Drop records older than `now - max_age_ms`. Returns the count removed.
 /// Has no effect if the topic has no `max_age_ms` set.
 pub fn LogStore::apply_retention(
   self : LogStore,

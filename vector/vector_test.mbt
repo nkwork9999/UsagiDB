@@ -1,4 +1,5 @@
-///| Cosine similarity puts the closest vector first.
+///|
+/// Cosine similarity puts the closest vector first.
 test "vector_cosine_ranks_closest" {
   let v = VectorStore::new(3)
   let _ = v.insert("a", [1.0, 0.0, 0.0])
@@ -10,7 +11,8 @@ test "vector_cosine_ranks_closest" {
   inspect(r[1].0, content="c")
 }
 
-///| Euclidean orders ascending — smaller distance comes first.
+///|
+/// Euclidean orders ascending — smaller distance comes first.
 test "vector_euclidean_orders_ascending" {
   let v = VectorStore::new(2, metric=Euclidean)
   let _ = v.insert("near", [1.0, 1.0])
@@ -20,7 +22,8 @@ test "vector_euclidean_orders_ascending" {
   inspect(r[1].0, content="far")
 }
 
-///| Re-insert with the same id replaces the embedding.
+///|
+/// Re-insert with the same id replaces the embedding.
 test "vector_reinsert_replaces" {
   let v = VectorStore::new(2)
   let _ = v.insert("x", [1.0, 0.0])
@@ -30,7 +33,8 @@ test "vector_reinsert_replaces" {
   inspect(r[0].0, content="x")
 }
 
-///| Dimension mismatch is rejected silently.
+///|
+/// Dimension mismatch is rejected silently.
 test "vector_dim_mismatch_rejected" {
   let v = VectorStore::new(3)
   let ok = v.insert("bad", [1.0, 0.0])

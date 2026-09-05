@@ -2,15 +2,17 @@
 // Sync Methods
 // ============================================
 
+///|
 pub fn TimeSeriesStore::sync_state(self : TimeSeriesStore) -> @core.SyncState {
   {
     local_seq: self.changelog.last_seq(),
     remote_seq: 0L,
-    pending: self.changelog.len()
+    pending: self.changelog.len(),
   }
 }
 
-///| Same as `get_changes_since` but only includes changes whose row matches
+///|
+/// Same as `get_changes_since` but only includes changes whose row matches
 /// `shape`. Lets a remote subscribe to just a slice of the data instead of
 /// the full firehose.
 pub fn TimeSeriesStore::get_changes_since_shape(
@@ -40,7 +42,11 @@ pub fn TimeSeriesStore::get_changes_since_shape(
   { from_seq: since_seq, to_seq: self.changelog.last_seq(), changes, crdt_rows }
 }
 
-pub fn TimeSeriesStore::get_changes_since(self : TimeSeriesStore, since_seq : Int64) -> @core.SyncPacket {
+///|
+pub fn TimeSeriesStore::get_changes_since(
+  self : TimeSeriesStore,
+  since_seq : Int64,
+) -> @core.SyncPacket {
   let changes = self.changelog.get_since(since_seq)
   // Ship CRDT rows with the packet when CRDT is enabled — receivers that
   // don't care can simply ignore the field.
@@ -56,7 +62,11 @@ pub fn TimeSeriesStore::get_changes_since(self : TimeSeriesStore, since_seq : In
   { from_seq: since_seq, to_seq: self.changelog.last_seq(), changes, crdt_rows }
 }
 
-pub fn TimeSeriesStore::apply_changes(self : TimeSeriesStore, packet : @core.SyncPacket) -> @core.SyncResult {
+///|
+pub fn TimeSeriesStore::apply_changes(
+  self : TimeSeriesStore,
+  packet : @core.SyncPacket,
+) -> @core.SyncResult {
   let mut applied = 0
   let conflicts : Array[Int64] = []
   let was_enabled = self.sync_enabled
@@ -80,7 +90,6 @@ pub fn TimeSeriesStore::apply_changes(self : TimeSeriesStore, packet : @core.Syn
   // Fold CRDT rows into the local set if CRDT is enabled here too.
   if self.crdt_enabled && packet.crdt_rows.length() > 0 {
     let _ = self.merge_crdt(packet.crdt_rows)
-
   }
   self.sync_enabled = was_enabled
   if conflicts.length() > 0 {
@@ -90,7 +99,8 @@ pub fn TimeSeriesStore::apply_changes(self : TimeSeriesStore, packet : @core.Syn
   }
 }
 
-///| Fold remote CRDT rows into the local set using LWW (default policy).
+///|
+/// Fold remote CRDT rows into the local set using LWW (default policy).
 pub fn TimeSeriesStore::merge_crdt(
   self : TimeSeriesStore,
   remote_rows : Array[@core.CRDTRow],
@@ -98,7 +108,8 @@ pub fn TimeSeriesStore::merge_crdt(
   self.merge_crdt_with(remote_rows, @core.LastWriteWins)
 }
 
-///| Fold remote CRDT rows under an explicit conflict-resolution policy.
+///|
+/// Fold remote CRDT rows under an explicit conflict-resolution policy.
 /// Use e.g. `MaxValue` for "always keep the highest reading", or
 /// `PreferSite("server")` to defer to a primary node.
 pub fn TimeSeriesStore::merge_crdt_with(
@@ -125,15 +136,19 @@ pub fn TimeSeriesStore::merge_crdt_with(
   merged_count
 }
 
+///|
 pub fn TimeSeriesStore::pending_changes(self : TimeSeriesStore) -> Int {
   self.changelog.len()
 }
 
-pub fn TimeSeriesStore::ack_sync(self : TimeSeriesStore, up_to_seq : Int64) -> Unit {
+///|
+pub fn TimeSeriesStore::ack_sync(
+  self : TimeSeriesStore,
+  up_to_seq : Int64,
+) -> Unit {
   let _ = up_to_seq
   let _ = self
 }
-
 
 // =============================================================================
 // JSON wire format for SyncPacket — used by the WebSocket / HTTP transport.
@@ -141,9 +156,13 @@ pub fn TimeSeriesStore::ack_sync(self : TimeSeriesStore, up_to_seq : Int64) -> U
 
 ///|
 fn lww_value_to_json(v : @core.LWWValue) -> String {
-  "{\"v\":" + value_to_json(v.value) +
-  ",\"ts\":" + v.timestamp.to_string() +
-  ",\"sid\":" + json_string(v.site_id) + "}"
+  "{\"v\":" +
+  value_to_json(v.value) +
+  ",\"ts\":" +
+  v.timestamp.to_string() +
+  ",\"sid\":" +
+  json_string(v.site_id) +
+  "}"
 }
 
 ///|
@@ -159,7 +178,9 @@ fn crdt_row_to_json(r : @core.CRDTRow) -> String {
   buf.write_string(",\"cols\":[")
   let mut first = true
   for c in r.columns {
-    if not(first) { buf.write_char(',') }
+    if not(first) {
+      buf.write_char(',')
+    }
     first = false
     buf.write_string(lww_value_to_json(c))
   }
@@ -171,7 +192,8 @@ fn crdt_row_to_json(r : @core.CRDTRow) -> String {
   buf.to_string()
 }
 
-///| Encode a SyncPacket as JSON. Wire format includes ChangeLog entries and
+///|
+/// Encode a SyncPacket as JSON. Wire format includes ChangeLog entries and
 /// (when CRDT enabled) the CRDTRow array.
 pub fn sync_packet_to_json(packet : @core.SyncPacket) -> String {
   let buf = StringBuilder::new()
@@ -182,14 +204,18 @@ pub fn sync_packet_to_json(packet : @core.SyncPacket) -> String {
   buf.write_string(",\"changes\":[")
   let mut first = true
   for entry in packet.changes {
-    if not(first) { buf.write_char(',') }
+    if not(first) {
+      buf.write_char(',')
+    }
     first = false
     buf.write_string(changelog_entry_to_json(entry))
   }
   buf.write_string("],\"crdt_rows\":[")
   let mut first2 = true
   for r in packet.crdt_rows {
-    if not(first2) { buf.write_char(',') }
+    if not(first2) {
+      buf.write_char(',')
+    }
     first2 = false
     buf.write_string(crdt_row_to_json(r))
   }

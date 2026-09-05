@@ -93,7 +93,8 @@ fn s_join_buckets(buckets : Array[OHLCBucket]) -> String {
   buf.to_string()
 }
 
-///| Serialize all series state to a JSON string. Config is omitted by design.
+///|
+/// Serialize all series state to a JSON string. Config is omitted by design.
 pub fn EventStore::serialize(self : EventStore) -> String {
   let buf = StringBuilder::new()
   buf.write_string("{\"series\":[")

@@ -13,7 +13,8 @@ pub fn TimeSeriesStore::register_aggregate(
   self.aggregates.push(agg)
 }
 
-///| Recompute the aggregate's `data` over `[start, end)` using the existing
+///|
+/// Recompute the aggregate's `data` over `[start, end)` using the existing
 /// `downsample` helper. Returns `false` if the named aggregate isn't found.
 pub fn TimeSeriesStore::refresh_aggregate(
   self : TimeSeriesStore,
@@ -24,7 +25,11 @@ pub fn TimeSeriesStore::refresh_aggregate(
   for agg in self.aggregates {
     if agg.name == name {
       let results = self.downsample(
-        start, end, agg.bucket_ms, agg.col_index, agg.agg_type,
+        start,
+        end,
+        agg.bucket_ms,
+        agg.col_index,
+        agg.agg_type,
       )
       agg.data = results
       agg.last_updated = end

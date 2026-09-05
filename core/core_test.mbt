@@ -1,4 +1,5 @@
-///| Delta encoding round-trips losslessly on a strictly-increasing sequence
+///|
+/// Delta encoding round-trips losslessly on a strictly-increasing sequence
 /// of timestamps — the common shape for time-series data.
 test "delta_encode_decode_roundtrip" {
   let xs : Array[Int64] = [1000L, 1001L, 1003L, 1010L, 1100L]
@@ -7,7 +8,8 @@ test "delta_encode_decode_roundtrip" {
   inspect(delta_decode(base, deltas), content="[1000, 1001, 1003, 1010, 1100]")
 }
 
-///| Compression ratio is > 1 when deltas are smaller than absolute values.
+///|
+/// Compression ratio is > 1 when deltas are smaller than absolute values.
 test "delta_compression_ratio" {
   let xs : Array[Int64] = [10000L, 10001L, 10002L, 10003L]
   let (_, deltas) = delta_encode(xs)
@@ -15,7 +17,8 @@ test "delta_compression_ratio" {
   inspect(ratio > 1.0, content="true")
 }
 
-///| Round-trip a JSON object → JsonValue → field accessors.
+///|
+/// Round-trip a JSON object → JsonValue → field accessors.
 test "json_parse_object" {
   let input = "{\"name\":\"foo\",\"count\":42,\"active\":true}"
   let json = parse_json(input).unwrap()
@@ -24,7 +27,8 @@ test "json_parse_object" {
   inspect(json.get("active").unwrap().as_bool(), content="Some(true)")
 }
 
-///| ChangeLog appends, gives back entries since a sequence number.
+///|
+/// ChangeLog appends, gives back entries since a sequence number.
 test "changelog_append_and_replay" {
   let log = ChangeLog::new()
   let r1 : Row = { ts: 100L, values: [Value::Int(1L)] }
@@ -39,7 +43,8 @@ test "changelog_append_and_replay" {
   inspect(after_two.length(), content="1")
 }
 
-///| Filter::Eq matches rows whose column equals a literal.
+///|
+/// Filter::Eq matches rows whose column equals a literal.
 test "filter_eq" {
   let row : Row = { ts: 0L, values: [Value::Int(7L), Value::String("alpha")] }
   let f1 = Filter::Eq(0, Value::Int(7L))
@@ -50,14 +55,16 @@ test "filter_eq" {
   inspect(f3.matches(row), content="true")
 }
 
-///| TimeUnit conversion is the same as the well-known constants.
+///|
+/// TimeUnit conversion is the same as the well-known constants.
 test "time_unit_to_ms" {
   inspect(TimeUnit::Second.to_ms(), content="1000")
   inspect(TimeUnit::Minute.to_ms(), content="60000")
   inspect(TimeUnit::Hour.to_ms(), content="3600000")
 }
 
-///| LamportClock advances on tick and on update with remote.
+///|
+/// LamportClock advances on tick and on update with remote.
 test "lamport_clock" {
   let clk = LamportClock::new("siteA")
   inspect(clk.tick(), content="1")
@@ -66,7 +73,8 @@ test "lamport_clock" {
   inspect(clk.tick(), content="11")
 }
 
-///| LWW merge picks the higher timestamp; tie broken by site_id.
+///|
+/// LWW merge picks the higher timestamp; tie broken by site_id.
 test "lww_merge" {
   let a : LWWValue = { value: Value::Int(1L), timestamp: 5L, site_id: "a" }
   let b : LWWValue = { value: Value::Int(2L), timestamp: 7L, site_id: "b" }
@@ -74,7 +82,8 @@ test "lww_merge" {
   inspect(merged.timestamp, content="7")
 }
 
-///| VectorClock per-site counter increments + merges.
+///|
+/// VectorClock per-site counter increments + merges.
 test "vector_clock" {
   let v = VectorClock::new()
   v.increment("a")
@@ -89,7 +98,8 @@ test "vector_clock" {
   inspect(v.get("c"), content="1")
 }
 
-///| FirstWriteWins keeps the older timestamp's value.
+///|
+/// FirstWriteWins keeps the older timestamp's value.
 test "fww_keeps_older" {
   let a : LWWValue = { value: Value::Int(1L), timestamp: 5L, site_id: "a" }
   let b : LWWValue = { value: Value::Int(2L), timestamp: 7L, site_id: "b" }
@@ -97,10 +107,19 @@ test "fww_keeps_older" {
   inspect(merged.timestamp, content="5")
 }
 
-///| MaxValue picks the larger numeric, regardless of clock.
+///|
+/// MaxValue picks the larger numeric, regardless of clock.
 test "max_value_picks_larger" {
-  let small : LWWValue = { value: Value::Int(10L), timestamp: 100L, site_id: "a" }
-  let large : LWWValue = { value: Value::Int(99L), timestamp: 50L, site_id: "b" }
+  let small : LWWValue = {
+    value: Value::Int(10L),
+    timestamp: 100L,
+    site_id: "a",
+  }
+  let large : LWWValue = {
+    value: Value::Int(99L),
+    timestamp: 50L,
+    site_id: "b",
+  }
   let merged = small.merge_with(large, MaxValue)
   match merged.value {
     Value::Int(v) => inspect(v, content="99")
@@ -108,10 +127,19 @@ test "max_value_picks_larger" {
   }
 }
 
-///| PreferSite biases toward a specific writer regardless of clock.
+///|
+/// PreferSite biases toward a specific writer regardless of clock.
 test "prefer_site_overrides_clock" {
-  let a : LWWValue = { value: Value::Int(1L), timestamp: 99L, site_id: "primary" }
-  let b : LWWValue = { value: Value::Int(2L), timestamp: 1L, site_id: "replica" }
+  let a : LWWValue = {
+    value: Value::Int(1L),
+    timestamp: 99L,
+    site_id: "primary",
+  }
+  let b : LWWValue = {
+    value: Value::Int(2L),
+    timestamp: 1L,
+    site_id: "replica",
+  }
   let merged = a.merge_with(b, PreferSite("primary"))
   inspect(merged.site_id, content="primary")
   inspect(merged.timestamp, content="99")

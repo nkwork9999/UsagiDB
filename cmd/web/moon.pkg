@@ -1,0 +1,20 @@
+import {
+  "nkwork9999/usagidb/stream",
+}
+
+options(
+  "is-main": true,
+  link: {
+    "js": {
+      "exports": [
+        "boot",
+        "tick",
+        "set_strategy",
+        "toggle_sensor",
+        "draw",
+        "reset",
+      ],
+      "format": "esm",
+    },
+  },
+)

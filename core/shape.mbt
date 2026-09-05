@@ -12,27 +12,32 @@ pub(all) struct Shape {
   filter : Filter?
 } derive(Show)
 
-///| All-pass shape — matches every row.
+///|
+/// All-pass shape — matches every row.
 pub fn Shape::all() -> Shape {
   { ts_min: None, ts_max: None, filter: None }
 }
 
-///| Time-range shape: matches rows whose `ts` is within `[lo, hi]` (inclusive).
+///|
+/// Time-range shape: matches rows whose `ts` is within `[lo, hi]` (inclusive).
 pub fn Shape::time_range(lo : Int64, hi : Int64) -> Shape {
   { ts_min: Some(lo), ts_max: Some(hi), filter: None }
 }
 
-///| Filter-only shape: matches any row whose values satisfy `f`.
+///|
+/// Filter-only shape: matches any row whose values satisfy `f`.
 pub fn Shape::with_filter(f : Filter) -> Shape {
   { ts_min: None, ts_max: None, filter: Some(f) }
 }
 
-///| Combined shape: time range AND filter must both match.
+///|
+/// Combined shape: time range AND filter must both match.
 pub fn Shape::and_filter(self : Shape, f : Filter) -> Shape {
   { ..self, filter: Some(f) }
 }
 
-///| Test whether a `Row` falls inside the shape.
+///|
+/// Test whether a `Row` falls inside the shape.
 pub fn Shape::matches_row(self : Shape, row : Row) -> Bool {
   match self.ts_min {
     Some(lo) => if row.ts < lo { return false }
@@ -49,7 +54,8 @@ pub fn Shape::matches_row(self : Shape, row : Row) -> Bool {
   true
 }
 
-///| Test whether a `ChangeLogEntry` falls inside the shape. Inserts use the
+///|
+/// Test whether a `ChangeLogEntry` falls inside the shape. Inserts use the
 /// row predicate; deletes match if the deleted-ts is within the time range
 /// (filter doesn't apply since we don't have the row anymore).
 pub fn Shape::matches_entry(self : Shape, entry : ChangeLogEntry) -> Bool {

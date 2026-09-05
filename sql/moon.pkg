@@ -1,0 +1,4 @@
+import {
+  "nkwork9999/usagidb/core",
+  "nkwork9999/usagidb/ts",
+}

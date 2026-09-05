@@ -2,6 +2,7 @@
 // JSON Parser
 // ============================================
 
+///|
 pub(all) enum JsonValue {
   JsonNull
   JsonBool(Bool)
@@ -11,15 +12,18 @@ pub(all) enum JsonValue {
   JsonObject(Array[(String, JsonValue)])
 }
 
+///|
 struct JsonParser {
   input : String
   mut pos : Int
 }
 
+///|
 fn JsonParser::new(input : String) -> JsonParser {
-  { input: input, pos: 0 }
+  { input, pos: 0 }
 }
 
+///|
 fn JsonParser::skip_whitespace(self : JsonParser) -> Unit {
   while self.pos < self.input.length() {
     let c = self.input[self.pos]
@@ -31,6 +35,7 @@ fn JsonParser::skip_whitespace(self : JsonParser) -> Unit {
   }
 }
 
+///|
 fn JsonParser::peek_char(self : JsonParser) -> Char {
   if self.pos < self.input.length() {
     self.input[self.pos].to_int().unsafe_to_char()
@@ -39,12 +44,14 @@ fn JsonParser::peek_char(self : JsonParser) -> Char {
   }
 }
 
+///|
 fn JsonParser::consume_char(self : JsonParser) -> Char {
   let c = self.peek_char()
   self.pos = self.pos + 1
   c
 }
 
+///|
 fn JsonParser::expect_char(self : JsonParser, expected : Char) -> Bool {
   self.skip_whitespace()
   if self.peek_char() == expected {
@@ -55,13 +62,14 @@ fn JsonParser::expect_char(self : JsonParser, expected : Char) -> Bool {
   }
 }
 
+///|
 fn JsonParser::parse_string(self : JsonParser) -> String? {
   self.skip_whitespace()
   if self.peek_char() != '"' {
     return None
   }
   self.pos = self.pos + 1
-  
+
   let mut result = ""
   while self.pos < self.input.length() {
     let c = self.consume_char()
@@ -89,14 +97,15 @@ fn JsonParser::parse_string(self : JsonParser) -> String? {
   None
 }
 
+///|
 fn JsonParser::parse_number(self : JsonParser) -> Double? {
   self.skip_whitespace()
   let start = self.pos
-  
+
   if self.peek_char() == '-' {
     self.pos = self.pos + 1
   }
-  
+
   while self.pos < self.input.length() {
     let c = self.peek_char()
     if c >= '0' && c <= '9' {
@@ -105,7 +114,7 @@ fn JsonParser::parse_number(self : JsonParser) -> Double? {
       break
     }
   }
-  
+
   if self.peek_char() == '.' {
     self.pos = self.pos + 1
     while self.pos < self.input.length() {
@@ -117,7 +126,7 @@ fn JsonParser::parse_number(self : JsonParser) -> Double? {
       }
     }
   }
-  
+
   if self.peek_char() == 'e' || self.peek_char() == 'E' {
     self.pos = self.pos + 1
     if self.peek_char() == '+' || self.peek_char() == '-' {
@@ -132,7 +141,7 @@ fn JsonParser::parse_number(self : JsonParser) -> Double? {
       }
     }
   }
-  
+
   if self.pos > start {
     let num_str = substring_manual(self.input, start, self.pos)
     Some(parse_double(num_str))
@@ -141,6 +150,7 @@ fn JsonParser::parse_number(self : JsonParser) -> Double? {
   }
 }
 
+///|
 fn substring_manual(s : String, start : Int, end : Int) -> String {
   let mut result = ""
   for i = start; i < end && i < s.length(); i = i + 1 {
@@ -149,17 +159,18 @@ fn substring_manual(s : String, start : Int, end : Int) -> String {
   result
 }
 
+///|
 fn parse_double(s : String) -> Double {
   let mut result = 0.0
   let mut decimal_place = 0.0
   let mut is_negative = false
   let mut i = 0
-  
+
   if i < s.length() && s[i] == '-' {
     is_negative = true
     i = i + 1
   }
-  
+
   while i < s.length() {
     let c = s[i].to_int().unsafe_to_char()
     if c >= '0' && c <= '9' {
@@ -173,7 +184,7 @@ fn parse_double(s : String) -> Double {
       break
     }
   }
-  
+
   while i < s.length() && decimal_place > 0.0 {
     let c = s[i].to_int().unsafe_to_char()
     if c >= '0' && c <= '9' {
@@ -184,10 +195,15 @@ fn parse_double(s : String) -> Double {
       break
     }
   }
-  
-  if is_negative { -result } else { result }
+
+  if is_negative {
+    -result
+  } else {
+    result
+  }
 }
 
+///|
 fn JsonParser::check_keyword(self : JsonParser, keyword : String) -> Bool {
   let len = keyword.length()
   if self.pos + len > self.input.length() {
@@ -202,10 +218,11 @@ fn JsonParser::check_keyword(self : JsonParser, keyword : String) -> Bool {
   true
 }
 
+///|
 fn JsonParser::parse_value(self : JsonParser) -> JsonValue? {
   self.skip_whitespace()
   let c = self.peek_char()
-  
+
   if c == '"' {
     match self.parse_string() {
       Some(s) => Some(JsonValue::JsonString(s))
@@ -243,25 +260,26 @@ fn JsonParser::parse_value(self : JsonParser) -> JsonValue? {
   }
 }
 
+///|
 fn JsonParser::parse_array(self : JsonParser) -> JsonValue? {
   if not(self.expect_char('[')) {
     return None
   }
-  
+
   let arr : Array[JsonValue] = []
   self.skip_whitespace()
-  
+
   if self.peek_char() == ']' {
     self.pos = self.pos + 1
     return Some(JsonValue::JsonArray(arr))
   }
-  
+
   while true {
     match self.parse_value() {
       Some(v) => arr.push(v)
       None => return None
     }
-    
+
     self.skip_whitespace()
     if self.peek_char() == ',' {
       self.pos = self.pos + 1
@@ -272,40 +290,41 @@ fn JsonParser::parse_array(self : JsonParser) -> JsonValue? {
       return None
     }
   }
-  
+
   Some(JsonValue::JsonArray(arr))
 }
 
+///|
 fn JsonParser::parse_object(self : JsonParser) -> JsonValue? {
   if not(self.expect_char('{')) {
     return None
   }
-  
+
   let obj : Array[(String, JsonValue)] = []
   self.skip_whitespace()
-  
+
   if self.peek_char() == '}' {
     self.pos = self.pos + 1
     return Some(JsonValue::JsonObject(obj))
   }
-  
+
   while true {
     let key = match self.parse_string() {
       Some(s) => s
       None => return None
     }
-    
+
     if not(self.expect_char(':')) {
       return None
     }
-    
+
     let value = match self.parse_value() {
       Some(v) => v
       None => return None
     }
-    
+
     obj.push((key, value))
-    
+
     self.skip_whitespace()
     if self.peek_char() == ',' {
       self.pos = self.pos + 1
@@ -316,10 +335,11 @@ fn JsonParser::parse_object(self : JsonParser) -> JsonValue? {
       return None
     }
   }
-  
+
   Some(JsonValue::JsonObject(obj))
 }
 
+///|
 pub fn parse_json(input : String) -> JsonValue? {
   let parser = JsonParser::new(input)
   parser.parse_value()
@@ -329,6 +349,7 @@ pub fn parse_json(input : String) -> JsonValue? {
 // JsonValue Helpers
 // ============================================
 
+///|
 pub fn JsonValue::get(self : JsonValue, key : String) -> JsonValue? {
   match self {
     JsonObject(pairs) => {
@@ -343,6 +364,7 @@ pub fn JsonValue::get(self : JsonValue, key : String) -> JsonValue? {
   }
 }
 
+///|
 pub fn JsonValue::as_array(self : JsonValue) -> Array[JsonValue]? {
   match self {
     JsonArray(arr) => Some(arr)
@@ -350,6 +372,7 @@ pub fn JsonValue::as_array(self : JsonValue) -> Array[JsonValue]? {
   }
 }
 
+///|
 pub fn JsonValue::as_number(self : JsonValue) -> Double? {
   match self {
     JsonNumber(n) => Some(n)
@@ -357,6 +380,7 @@ pub fn JsonValue::as_number(self : JsonValue) -> Double? {
   }
 }
 
+///|
 pub fn JsonValue::as_string(self : JsonValue) -> String? {
   match self {
     JsonString(s) => Some(s)
@@ -364,6 +388,7 @@ pub fn JsonValue::as_string(self : JsonValue) -> String? {
   }
 }
 
+///|
 pub fn JsonValue::as_bool(self : JsonValue) -> Bool? {
   match self {
     JsonBool(b) => Some(b)
@@ -371,6 +396,7 @@ pub fn JsonValue::as_bool(self : JsonValue) -> Bool? {
   }
 }
 
+///|
 pub fn JsonValue::as_int(self : JsonValue) -> Int? {
   match self {
     JsonNumber(n) => Some(n.to_int())
@@ -378,10 +404,10 @@ pub fn JsonValue::as_int(self : JsonValue) -> Int? {
   }
 }
 
+///|
 pub fn JsonValue::as_int64(self : JsonValue) -> Int64? {
   match self {
     JsonNumber(n) => Some(n.to_int64())
     _ => None
   }
 }
-

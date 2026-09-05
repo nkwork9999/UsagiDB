@@ -87,7 +87,8 @@ fn d_buckets(j : @core.JsonValue) -> Array[OHLCBucket] {
   result
 }
 
-///| Restore data into an existing `EventStore`. Returns false on parse fail.
+///|
+/// Restore data into an existing `EventStore`. Returns false on parse fail.
 /// Series not present in the JSON keep their existing state; series in the
 /// JSON overwrite local state for that key.
 pub fn EventStore::restore_from(self : EventStore, json_str : String) -> Bool {

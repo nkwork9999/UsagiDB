@@ -12,9 +12,16 @@ Multi-modal embedded database in MoonBit. Runs in the browser.
 | **`log`** | Kafka-like topics + consumer groups + retention + JSON snapshot |
 | **`search`** | Inverted-index full-text search |
 | **`vector`** | Brute-force k-NN (Cosine / Dot / Euclidean) |
+| **`kv`** | Typed in-memory key/value store with stable key order |
 | **`sql`** | Typed query builder over `ts` (SELECT/WHERE/AGG) |
 
 Plus: CRDT (LWW + VectorClock + LamportClock), conflict-resolution policies (LWW / FWW / Max / Min / PreferSite), Shape-based subscriptions, JSON SyncPacket wire format.
+
+The `kv` mode includes 20 extended operations beyond the core CRUD surface:
+`is_empty`, `values`, `entries_snapshot`, `get_or`, `put_if_absent`,
+`replace_existing`, `take`, `clear`, `first`, `last`, `key_at`, `value_at`,
+`index_of`, `rename`, `swap`, `keys_with_prefix`, `count_prefix`,
+`delete_prefix`, `retain_prefix`, and `merge_from`.
 
 ## Demo
 
@@ -85,6 +92,7 @@ UsagiDB/
 ├── log/       Kafka-like topics + consumer groups + bridge to stream
 ├── search/    Inverted-index FTS
 ├── vector/    Brute-force k-NN
+├── kv/        Typed in-memory key/value store
 ├── sql/       Typed query builder
 ├── lib.mbt    Umbrella UsagiDB struct + facade methods
 ├── cmd/main/  CLI demo + JS exports for index.html
@@ -136,7 +144,7 @@ To enable: GitHub repo → **Settings → Pages → Source: `GitHub Actions`** (
 ```
 ┌─────────────────────────────────────────────┐
 │             UsagiDB (umbrella)              │
-│   { ts?, stream?, log?, search?, vector? }  │
+│ { ts?, stream?, log?, search?, vector?, kv? }│
 ├─────────────────────────────────────────────┤
 │  ts mode: TimeSeriesStore                   │
 │  ┌────────────┬────────────┬────────────┐   │

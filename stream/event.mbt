@@ -23,11 +23,9 @@ pub fn transition(store : EventStore, event : Event) -> EventStore {
   match event {
     PriceReceived(key, value, time) => {
       let _ = store.put(key, value, time)
-
     }
     SensorReading(key, value, time) => {
       let _ = store.put(key, value, time)
-
     }
     SensorAnomaly(_, _, _) => ()
     SensorAdded(_) => ()

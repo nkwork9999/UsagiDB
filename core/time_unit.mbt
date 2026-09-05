@@ -2,6 +2,7 @@
 // Time Unit (for GROUP BY time)
 // ============================================
 
+///|
 pub(all) enum TimeUnit {
   Millisecond
   Second
@@ -11,6 +12,7 @@ pub(all) enum TimeUnit {
   Week
 } derive(Show)
 
+///|
 pub fn TimeUnit::to_ms(self : TimeUnit) -> Int64 {
   match self {
     TimeUnit::Millisecond => 1L
@@ -21,4 +23,3 @@ pub fn TimeUnit::to_ms(self : TimeUnit) -> Int64 {
     TimeUnit::Week => 604800000L
   }
 }
-

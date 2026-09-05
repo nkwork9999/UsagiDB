@@ -55,7 +55,8 @@ fn tokenize(text : String) -> Array[String] {
   tokens
 }
 
-///| Index `text` under `doc_id`. Re-indexing the same `doc_id` overwrites.
+///|
+/// Index `text` under `doc_id`. Re-indexing the same `doc_id` overwrites.
 pub fn SearchIndex::index(
   self : SearchIndex,
   doc_id : String,
@@ -105,7 +106,8 @@ pub fn SearchIndex::remove(self : SearchIndex, doc_id : String) -> Unit {
   }
 }
 
-///| Search `query` and return `(doc_id, score)` pairs sorted by score desc.
+///|
+/// Search `query` and return `(doc_id, score)` pairs sorted by score desc.
 /// Score is the sum of term-frequencies for tokens that match.
 pub fn SearchIndex::search(
   self : SearchIndex,
@@ -147,7 +149,8 @@ pub fn SearchIndex::search(
   result
 }
 
-///| Number of indexed docs.
+///|
+/// Number of indexed docs.
 pub fn SearchIndex::doc_count(self : SearchIndex) -> Int {
   self.docs.size()
 }

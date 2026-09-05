@@ -1,28 +1,14 @@
-{
+import {
+  "nkwork9999/usagidb" @lib,
+  "nkwork9999/usagidb/core",
+  "nkwork9999/usagidb/ts",
+  "nkwork9999/usagidb/stream",
+  "nkwork9999/usagidb/log",
+}
+
+options(
   "is-main": true,
-  "import": [
-    {
-      "path": "nkwork9999/usagidb",
-      "alias": "lib"
-    },
-    {
-      "path": "nkwork9999/usagidb/core",
-      "alias": "core"
-    },
-    {
-      "path": "nkwork9999/usagidb/ts",
-      "alias": "ts"
-    },
-    {
-      "path": "nkwork9999/usagidb/stream",
-      "alias": "stream"
-    },
-    {
-      "path": "nkwork9999/usagidb/log",
-      "alias": "log"
-    }
-  ],
-  "link": {
+  link: {
     "js": {
       "exports": [
         "create",
@@ -52,9 +38,9 @@
         "sync_pull",
         "sync_apply",
         "sync_local_seq",
-        "sync_pull_range"
+        "sync_pull_range",
       ],
-      "format": "esm"
-    }
-  }
-}
+      "format": "esm",
+    },
+  },
+)

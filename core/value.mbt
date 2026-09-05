@@ -6,6 +6,7 @@
 // Types
 // ============================================
 
+///|
 /// Value type for database cells
 pub(all) enum Value {
   Null
@@ -15,9 +16,9 @@ pub(all) enum Value {
   Timestamp(Int64)
 } derive(Show, Eq)
 
+///|
 /// A row with timestamp as primary key
 pub(all) struct Row {
   ts : Int64
   values : Array[Value]
 } derive(Show)
-

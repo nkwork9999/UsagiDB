@@ -9,18 +9,185 @@ pub(all) struct UsagiDB {
   mut log : @log.LogStore?
   mut search : @search.SearchIndex?
   mut vector : @vector.VectorStore?
+  mut kv : @kv.KVStore?
 }
 
-///| Empty umbrella with no modes enabled. Call `enable_*` to opt in.
+///|
+/// Empty umbrella with no modes enabled. Call `enable_*` to opt in.
 pub fn UsagiDB::new() -> UsagiDB {
-  { ts: None, stream: None, log: None, search: None, vector: None }
+  { ts: None, stream: None, log: None, search: None, vector: None, kv: None }
 }
 
-///| Enable the vector store with a fixed embedding dimension.
+///|
+/// Enable the in-memory key/value store.
+pub fn UsagiDB::enable_kv(self : UsagiDB) -> UsagiDB {
+  self.kv = Some(@kv.KVStore::new())
+  self
+}
+
+///|
+fn UsagiDB::require_kv(self : UsagiDB) -> @kv.KVStore {
+  match self.kv {
+    Some(kv) => kv
+    None => abort("UsagiDB: kv mode not enabled — call enable_kv() first")
+  }
+}
+
+///|
+pub fn UsagiDB::kv_put(
+  self : UsagiDB,
+  key : String,
+  value : @core.Value,
+) -> Unit {
+  self.require_kv().put(key, value)
+}
+
+///|
+pub fn UsagiDB::kv_get(self : UsagiDB, key : String) -> @core.Value? {
+  self.require_kv().get(key)
+}
+
+///|
+pub fn UsagiDB::kv_delete(self : UsagiDB, key : String) -> Bool {
+  self.require_kv().delete(key)
+}
+
+///|
+pub fn UsagiDB::kv_contains(self : UsagiDB, key : String) -> Bool {
+  self.require_kv().contains(key)
+}
+
+///|
+pub fn UsagiDB::kv_size(self : UsagiDB) -> Int {
+  self.require_kv().size()
+}
+
+///|
+pub fn UsagiDB::kv_is_empty(self : UsagiDB) -> Bool {
+  self.require_kv().is_empty()
+}
+
+///|
+pub fn UsagiDB::kv_keys(self : UsagiDB) -> Array[String] {
+  self.require_kv().keys()
+}
+
+///|
+pub fn UsagiDB::kv_values(self : UsagiDB) -> Array[@core.Value] {
+  self.require_kv().values()
+}
+
+///|
+pub fn UsagiDB::kv_entries(self : UsagiDB) -> Array[@kv.KVEntry] {
+  self.require_kv().entries_snapshot()
+}
+
+///|
+pub fn UsagiDB::kv_get_or(
+  self : UsagiDB,
+  key : String,
+  fallback : @core.Value,
+) -> @core.Value {
+  self.require_kv().get_or(key, fallback)
+}
+
+///|
+pub fn UsagiDB::kv_put_if_absent(
+  self : UsagiDB,
+  key : String,
+  value : @core.Value,
+) -> Bool {
+  self.require_kv().put_if_absent(key, value)
+}
+
+///|
+pub fn UsagiDB::kv_replace_existing(
+  self : UsagiDB,
+  key : String,
+  value : @core.Value,
+) -> Bool {
+  self.require_kv().replace_existing(key, value)
+}
+
+///|
+pub fn UsagiDB::kv_take(self : UsagiDB, key : String) -> @core.Value? {
+  self.require_kv().take(key)
+}
+
+///|
+pub fn UsagiDB::kv_clear(self : UsagiDB) -> Unit {
+  self.require_kv().clear()
+}
+
+///|
+pub fn UsagiDB::kv_first(self : UsagiDB) -> @kv.KVEntry? {
+  self.require_kv().first()
+}
+
+///|
+pub fn UsagiDB::kv_last(self : UsagiDB) -> @kv.KVEntry? {
+  self.require_kv().last()
+}
+
+///|
+pub fn UsagiDB::kv_key_at(self : UsagiDB, index : Int) -> String? {
+  self.require_kv().key_at(index)
+}
+
+///|
+pub fn UsagiDB::kv_value_at(self : UsagiDB, index : Int) -> @core.Value? {
+  self.require_kv().value_at(index)
+}
+
+///|
+pub fn UsagiDB::kv_index_of(self : UsagiDB, key : String) -> Int {
+  self.require_kv().index_of(key)
+}
+
+///|
+pub fn UsagiDB::kv_rename(self : UsagiDB, from : String, to : String) -> Bool {
+  self.require_kv().rename(from, to)
+}
+
+///|
+pub fn UsagiDB::kv_swap(self : UsagiDB, left : String, right : String) -> Bool {
+  self.require_kv().swap(left, right)
+}
+
+///|
+pub fn UsagiDB::kv_keys_with_prefix(
+  self : UsagiDB,
+  prefix : String,
+) -> Array[String] {
+  self.require_kv().keys_with_prefix(prefix)
+}
+
+///|
+pub fn UsagiDB::kv_count_prefix(self : UsagiDB, prefix : String) -> Int {
+  self.require_kv().count_prefix(prefix)
+}
+
+///|
+pub fn UsagiDB::kv_delete_prefix(self : UsagiDB, prefix : String) -> Int {
+  self.require_kv().delete_prefix(prefix)
+}
+
+///|
+pub fn UsagiDB::kv_retain_prefix(self : UsagiDB, prefix : String) -> Int {
+  self.require_kv().retain_prefix(prefix)
+}
+
+///|
+pub fn UsagiDB::kv_merge_from(self : UsagiDB, other : @kv.KVStore) -> Int {
+  self.require_kv().merge_from(other)
+}
+
+///|
+/// Enable the vector store with a fixed embedding dimension.
 pub fn UsagiDB::enable_vector(
   self : UsagiDB,
   dim : Int,
-  metric~ : @vector.DistanceMetric = Cosine,
+  metric? : @vector.DistanceMetric = Cosine,
 ) -> UsagiDB {
   self.vector = Some(@vector.VectorStore::new(dim, metric~))
   self
@@ -30,7 +197,8 @@ pub fn UsagiDB::enable_vector(
 fn UsagiDB::require_vector(self : UsagiDB) -> @vector.VectorStore {
   match self.vector {
     Some(v) => v
-    None => abort("UsagiDB: vector mode not enabled — call enable_vector() first")
+    None =>
+      abort("UsagiDB: vector mode not enabled — call enable_vector() first")
   }
 }
 
@@ -63,15 +231,14 @@ pub fn UsagiDB::query(self : UsagiDB) -> @sql.Query {
   @sql.Query::from_ts()
 }
 
-///| Convenience: run a built `Query` against this DB's ts store.
-pub fn UsagiDB::query_run(
-  self : UsagiDB,
-  q : @sql.Query,
-) -> @sql.QueryResult {
+///|
+/// Convenience: run a built `Query` against this DB's ts store.
+pub fn UsagiDB::query_run(self : UsagiDB, q : @sql.Query) -> @sql.QueryResult {
   q.execute(self.require_ts())
 }
 
-///| Enable the full-text search index.
+///|
+/// Enable the full-text search index.
 pub fn UsagiDB::enable_search(self : UsagiDB) -> UsagiDB {
   self.search = Some(@search.SearchIndex::new())
   self
@@ -81,7 +248,8 @@ pub fn UsagiDB::enable_search(self : UsagiDB) -> UsagiDB {
 fn UsagiDB::require_search(self : UsagiDB) -> @search.SearchIndex {
   match self.search {
     Some(s) => s
-    None => abort("UsagiDB: search mode not enabled — call enable_search() first")
+    None =>
+      abort("UsagiDB: search mode not enabled — call enable_search() first")
   }
 }
 
@@ -102,16 +270,15 @@ pub fn UsagiDB::search_query(
   self.require_search().search(query)
 }
 
-///| Enable the time-series mode. `threshold` controls compaction.
-pub fn UsagiDB::enable_ts(
-  self : UsagiDB,
-  threshold~ : Int = 100,
-) -> UsagiDB {
+///|
+/// Enable the time-series mode. `threshold` controls compaction.
+pub fn UsagiDB::enable_ts(self : UsagiDB, threshold? : Int = 100) -> UsagiDB {
   self.ts = Some(@ts.TimeSeriesStore::with_threshold(threshold))
   self
 }
 
-///| Enable the stream mode (jellyfish_moon-style realtime compaction).
+///|
+/// Enable the stream mode (jellyfish_moon-style realtime compaction).
 /// Pass a pre-built `CompactionConfig` to set per-key strategies up front,
 /// or omit it for an empty config that the caller can mutate afterwards
 /// via `db.stream.unwrap()`.
@@ -127,7 +294,8 @@ pub fn UsagiDB::enable_stream(
   self
 }
 
-///| v0.1 compatibility shortcut — `UsagiDB::with_threshold(t)` is now
+///|
+/// v0.1 compatibility shortcut — `UsagiDB::with_threshold(t)` is now
 /// `new().enable_ts(threshold=t)`.
 pub fn UsagiDB::with_threshold(threshold : Int) -> UsagiDB {
   UsagiDB::new().enable_ts(threshold~)
@@ -137,6 +305,7 @@ pub fn UsagiDB::with_threshold(threshold : Int) -> UsagiDB {
 // Facade methods — delegate to the ts mode (panic if not enabled).
 // =============================================================================
 
+///|
 fn UsagiDB::require_ts(self : UsagiDB) -> @ts.TimeSeriesStore {
   match self.ts {
     Some(t) => t
@@ -172,10 +341,19 @@ pub fn UsagiDB::serialize(self : UsagiDB) -> String {
   self.require_ts().serialize()
 }
 
-///| Round-trip a serialized TS-mode UsagiDB. Mode flags must match the source.
+///|
+/// Round-trip a serialized TS-mode UsagiDB. Mode flags must match the source.
 pub fn UsagiDB::deserialize(json_str : String) -> UsagiDB? {
   match @ts.TimeSeriesStore::deserialize(json_str) {
-    Some(t) => Some({ ts: Some(t), stream: None, log: None, search: None, vector: None })
+    Some(t) =>
+      Some({
+        ts: Some(t),
+        stream: None,
+        log: None,
+        search: None,
+        vector: None,
+        kv: None,
+      })
     None => None
   }
 }
@@ -192,6 +370,7 @@ pub fn UsagiDB::deserialize(json_str : String) -> UsagiDB? {
 // through `db.stream.unwrap()` directly.
 // =============================================================================
 
+///|
 fn UsagiDB::require_stream(self : UsagiDB) -> @stream.EventStore {
   match self.stream {
     Some(s) => s
@@ -241,8 +420,8 @@ pub fn UsagiDB::log_produce(
   self : UsagiDB,
   topic : String,
   value : @core.Value,
-  key~ : String? = None,
-  timestamp~ : Int64 = 0L,
+  key? : String? = None,
+  timestamp? : Int64 = 0L,
 ) -> Int64 {
   self.require_log().produce(topic, value, key~, timestamp~)
 }
@@ -286,7 +465,8 @@ pub fn UsagiDB::log_seek(
   self.require_log().seek(topic, group, offset)
 }
 
-///| Bridge log → stream: drain `topic` for `group`, forward Float/Int values
+///|
+/// Bridge log → stream: drain `topic` for `group`, forward Float/Int values
 /// to the stream store under `stream_key`. Returns piped count. Requires
 /// both log and stream modes enabled.
 pub fn UsagiDB::log_to_stream(
@@ -294,20 +474,22 @@ pub fn UsagiDB::log_to_stream(
   topic : String,
   group : String,
   stream_key : String,
-  max~ : Int = 1024,
+  max? : Int = 1024,
 ) -> Int {
-  self.require_log().pipe_to_stream(
-    topic, group, self.require_stream(), stream_key, max~,
-  )
+  self
+  .require_log()
+  .pipe_to_stream(topic, group, self.require_stream(), stream_key, max~)
 }
 
-///| Serialize the log mode (topics + records + group offsets) to JSON. Use
+///|
+/// Serialize the log mode (topics + records + group offsets) to JSON. Use
 /// this as the source bytes for OPFS / IndexedDB / network sync.
 pub fn UsagiDB::log_serialize(self : UsagiDB) -> String {
   self.require_log().serialize()
 }
 
-///| Replace this DB's log store with one parsed from `json_str`. Returns
+///|
+/// Replace this DB's log store with one parsed from `json_str`. Returns
 /// `false` if the JSON didn't parse; ts/stream modes are unchanged.
 pub fn UsagiDB::log_deserialize(self : UsagiDB, json_str : String) -> Bool {
   match @log.LogStore::deserialize(json_str) {
@@ -330,10 +512,7 @@ pub fn UsagiDB::stream_serialize(self : UsagiDB) -> String {
 }
 
 ///|
-pub fn UsagiDB::stream_restore_from(
-  self : UsagiDB,
-  json_str : String,
-) -> Bool {
+pub fn UsagiDB::stream_restore_from(self : UsagiDB, json_str : String) -> Bool {
   self.require_stream().restore_from(json_str)
 }
 
@@ -342,14 +521,16 @@ pub fn UsagiDB::stream_restore_from(
 // JS. The packet itself is JSON; transport is the host's choice.
 // =============================================================================
 
-///| Build a JSON SyncPacket carrying changes since `since_seq`. Send this to
+///|
+/// Build a JSON SyncPacket carrying changes since `since_seq`. Send this to
 /// the remote over your transport of choice.
 pub fn UsagiDB::sync_pull_json(self : UsagiDB, since_seq : Int64) -> String {
   let packet = self.require_ts().get_changes_since(since_seq)
   @ts.sync_packet_to_json(packet)
 }
 
-///| Like `sync_pull_json` but filtered through a `Shape` — only changes that
+///|
+/// Like `sync_pull_json` but filtered through a `Shape` — only changes that
 /// match the shape's time range / column filter are sent.
 pub fn UsagiDB::sync_pull_shape_json(
   self : UsagiDB,
@@ -360,7 +541,8 @@ pub fn UsagiDB::sync_pull_shape_json(
   @ts.sync_packet_to_json(packet)
 }
 
-///| Apply a JSON SyncPacket received from a remote. Returns the SyncResult
+///|
+/// Apply a JSON SyncPacket received from a remote. Returns the SyncResult
 /// (`Success(n)` / `Conflict([ts...])` / `Error(...)`).
 pub fn UsagiDB::sync_apply_json(
   self : UsagiDB,

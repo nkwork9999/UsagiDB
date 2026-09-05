@@ -51,7 +51,8 @@ pub fn EventStore::new(config : CompactionConfig) -> EventStore {
   { config, series: Map::new() }
 }
 
-///| Add a per-key compaction rule on the underlying config. Mirrors the
+///|
+/// Add a per-key compaction rule on the underlying config. Mirrors the
 /// `CompactionConfig` builder so callers don't need to expose the config field.
 pub fn EventStore::set_rule(
   self : EventStore,
@@ -59,17 +60,16 @@ pub fn EventStore::set_rule(
   strategy : CompactionStrategy,
 ) -> Unit {
   let _ = self.config.rule(key, strategy)
-
 }
 
-///| Register a trigger (eager / batch / lazy) for `key`.
+///|
+/// Register a trigger (eager / batch / lazy) for `key`.
 pub fn EventStore::set_trigger(
   self : EventStore,
   key : String,
   trigger : CompactionTrigger,
 ) -> Unit {
   let _ = self.config.trigger(key, trigger)
-
 }
 
 ///|
@@ -159,11 +159,9 @@ pub fn EventStore::put(
   }
 }
 
-///| Drain `state.pending` through `apply_strategy`, in order.
-fn flush_pending(
-  state : SeriesState,
-  strategy : CompactionStrategy,
-) -> Unit {
+///|
+/// Drain `state.pending` through `apply_strategy`, in order.
+fn flush_pending(state : SeriesState, strategy : CompactionStrategy) -> Unit {
   for s in state.pending {
     let (t, v) = s
     if apply_strategy(state, strategy, v, t) {
@@ -173,7 +171,8 @@ fn flush_pending(
   state.pending.clear()
 }
 
-///| Manually flush a key's pending buffer (useful for `Manual` trigger or to
+///|
+/// Manually flush a key's pending buffer (useful for `Manual` trigger or to
 /// force a checkpoint without waiting for a count/time threshold).
 pub fn EventStore::compact(self : EventStore, key : String) -> Unit {
   match self.series.get(key) {
@@ -203,7 +202,6 @@ fn apply_strategy(
       state.samples.push((time, value))
       while state.samples.length() > n {
         let _ = state.samples.remove(0)
-
       }
       state.last_kept_value = Some(value)
       state.last_kept_time = Some(time)

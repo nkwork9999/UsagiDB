@@ -1,4 +1,5 @@
-///| Smoke test: per-key strategy + put/query round-trip.
+///|
+/// Smoke test: per-key strategy + put/query round-trip.
 test "stream_keep_last_n" {
   let config = CompactionConfig::new().rule("v", KeepLastN(3))
   let store = EventStore::new(config)
@@ -6,13 +7,11 @@ test "stream_keep_last_n" {
   let _ = store.put("v", 2.0, 2L)
   let _ = store.put("v", 3.0, 3L)
   let _ = store.put("v", 4.0, 4L)
-  inspect(
-    store.query("v"),
-    content="[Point(2, 2), Point(3, 3), Point(4, 4)]",
-  )
+  inspect(store.query("v"), content="[Point(2, 2), Point(3, 3), Point(4, 4)]")
 }
 
-///| Downsample collapses many samples into one OHLC bucket.
+///|
+/// Downsample collapses many samples into one OHLC bucket.
 test "stream_downsample_ohlc" {
   let config = CompactionConfig::new().rule("p", Downsample(60000L, OHLC))
   let store = EventStore::new(config)
@@ -23,7 +22,8 @@ test "stream_downsample_ohlc" {
   inspect(rows.length(), content="1")
 }
 
-///| DeadBand drops samples within the threshold.
+///|
+/// DeadBand drops samples within the threshold.
 test "stream_deadband" {
   let config = CompactionConfig::new().rule("t", DeadBand(0.5))
   let store = EventStore::new(config)
@@ -32,7 +32,8 @@ test "stream_deadband" {
   inspect(store.put("t", 20.80, 200L), content="Kept")
 }
 
-///| OnRead defers compaction: pending grows on put, drains on query.
+///|
+/// OnRead defers compaction: pending grows on put, drains on query.
 test "trigger_on_read_defers" {
   let config = CompactionConfig::new()
     .rule("v", KeepLastN(3))
@@ -49,7 +50,8 @@ test "trigger_on_read_defers" {
   inspect(rows.length(), content="3")
 }
 
-///| EveryN(N) batches: flushes only when pending reaches N.
+///|
+/// EveryN(N) batches: flushes only when pending reaches N.
 test "trigger_every_n_batches" {
   let config = CompactionConfig::new()
     .rule("v", KeepAll)
@@ -64,11 +66,10 @@ test "trigger_every_n_batches" {
   inspect(store.size("v"), content="3")
 }
 
-///| Manual trigger never flushes on its own; explicit compact() is required.
+///|
+/// Manual trigger never flushes on its own; explicit compact() is required.
 test "trigger_manual_requires_compact_call" {
-  let config = CompactionConfig::new()
-    .rule("v", KeepAll)
-    .trigger("v", Manual)
+  let config = CompactionConfig::new().rule("v", KeepAll).trigger("v", Manual)
   let store = EventStore::new(config)
   let _ = store.put("v", 1.0, 1L)
   let _ = store.put("v", 2.0, 2L)

@@ -17,7 +17,8 @@ pub fn TimeSeriesStore::disable_retention(self : TimeSeriesStore) -> Unit {
   self.retention.enabled = false
 }
 
-///| Drop rows older than `current_time - duration_ms`. Returns the number of
+///|
+/// Drop rows older than `current_time - duration_ms`. Returns the number of
 /// rows that were dropped (delta + chunk).
 pub fn TimeSeriesStore::apply_retention(
   self : TimeSeriesStore,

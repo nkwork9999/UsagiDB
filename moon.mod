@@ -1,0 +1,13 @@
+name = "nkwork9999/usagidb"
+
+version = "0.1.0"
+
+readme = "README.mbt.md"
+
+repository = "https://github.com/nkwork9999/UsagiDB"
+
+license = "MPL-2.0"
+
+keywords = [ "database", "time-series", "htap", "moonbit", "browser" ]
+
+description = "Lightweight HTAP time-series database in MoonBit, runs in the browser"

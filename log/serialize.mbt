@@ -115,7 +115,8 @@ fn topic_json(t : Topic) -> String {
   buf.to_string()
 }
 
-///| Serialize the entire LogStore to JSON. The output is `parse_json`-able
+///|
+/// Serialize the entire LogStore to JSON. The output is `parse_json`-able
 /// and round-trips through `LogStore::deserialize`.
 pub fn LogStore::serialize(self : LogStore) -> String {
   let buf = StringBuilder::new()

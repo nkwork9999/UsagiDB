@@ -1,4 +1,5 @@
-///| Index, search, ranked results.
+///|
+/// Index, search, ranked results.
 test "search_basic_ranking" {
   let idx = SearchIndex::new()
   idx.index("d1", "The quick brown fox jumps over the lazy dog")
@@ -12,7 +13,8 @@ test "search_basic_ranking" {
   inspect(r2[0].0, content="d2") // d2 has both terms → higher score
 }
 
-///| Re-indexing replaces the prior posting.
+///|
+/// Re-indexing replaces the prior posting.
 test "search_reindex_overwrites" {
   let idx = SearchIndex::new()
   idx.index("d1", "alpha beta")
@@ -21,7 +23,8 @@ test "search_reindex_overwrites" {
   inspect(idx.search("gamma").length(), content="1")
 }
 
-///| Removing a doc drops it from postings.
+///|
+/// Removing a doc drops it from postings.
 test "search_remove" {
   let idx = SearchIndex::new()
   idx.index("d1", "hello world")
@@ -32,7 +35,8 @@ test "search_remove" {
   inspect(idx.doc_count(), content="1")
 }
 
-///| Tokenizer is lowercase and ignores punctuation.
+///|
+/// Tokenizer is lowercase and ignores punctuation.
 test "search_case_and_punct" {
   let idx = SearchIndex::new()
   idx.index("d1", "Hello, World!")

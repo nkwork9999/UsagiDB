@@ -34,6 +34,7 @@ UsagiDB/
 │   ├── store.mbt                ← TimeSeriesStore (中核)
 │   ├── serialize.mbt            ← TS-DB → JSON
 │   └── deserialize.mbt          ← JSON → TS-DB
+├── kv/                          ← typed in-memory key/value mode
 └── cmd/main/                    ← demo + JS exports
 ```
 
@@ -74,7 +75,7 @@ pub fn UsagiDB::with_threshold(threshold : Int) -> UsagiDB {
 
 - (1) v0.2機能（CRDT/Retention/ContinuousAggregate）の取り込み — 別ステップ
 - 真の傘API化（`db.ts.insert(...)` 形式） — ts専用facadeメソッド (`db.insert(...)`) を残してinternalにts呼び出し
-- KV/stream/vector など他モードの実装 — 後続
+- stream/vector に加えて KV モードも独立パッケージとして実装済み
 
 ## 実行順序（(2) v0.1分割）
 

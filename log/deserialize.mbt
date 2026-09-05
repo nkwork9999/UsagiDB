@@ -43,9 +43,7 @@ fn restore_value(json : @core.JsonValue) -> @core.Value? {
 }
 
 ///|
-fn restore_headers(
-  json : @core.JsonValue,
-) -> Array[(String, String)] {
+fn restore_headers(json : @core.JsonValue) -> Array[(String, String)] {
   let result : Array[(String, String)] = []
   match json.as_array() {
     None => return result

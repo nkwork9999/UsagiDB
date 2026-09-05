@@ -2,6 +2,7 @@
 // Aggregation Functions
 // ============================================
 
+///|
 pub(all) enum AggResult {
   IntResult(Int64)
   FloatResult(Double)
@@ -9,6 +10,7 @@ pub(all) enum AggResult {
   NullResult
 } derive(Show)
 
+///|
 pub(all) enum AggType {
   Sum
   Count
@@ -17,14 +19,20 @@ pub(all) enum AggType {
   Max
 } derive(Show)
 
-pub fn TimeSeriesStore::sum(self : TimeSeriesStore, start : Int64, end : Int64, col_index : Int) -> AggResult {
+///|
+pub fn TimeSeriesStore::sum(
+  self : TimeSeriesStore,
+  start : Int64,
+  end : Int64,
+  col_index : Int,
+) -> AggResult {
   let rows = self.scan(start, end)
-  
+
   let mut int_sum : Int64 = 0
   let mut float_sum : Double = 0.0
   let mut has_int = false
   let mut has_float = false
-  
+
   for row in rows {
     if col_index < row.values.length() {
       match row.values[col_index] {
@@ -40,7 +48,7 @@ pub fn TimeSeriesStore::sum(self : TimeSeriesStore, start : Int64, end : Int64, 
       }
     }
   }
-  
+
   if has_float {
     AggResult::FloatResult(float_sum + int_sum.to_double())
   } else if has_int {
@@ -50,15 +58,26 @@ pub fn TimeSeriesStore::sum(self : TimeSeriesStore, start : Int64, end : Int64, 
   }
 }
 
-pub fn TimeSeriesStore::count(self : TimeSeriesStore, start : Int64, end : Int64) -> AggResult {
+///|
+pub fn TimeSeriesStore::count(
+  self : TimeSeriesStore,
+  start : Int64,
+  end : Int64,
+) -> AggResult {
   let rows = self.scan(start, end)
   AggResult::CountResult(rows.length())
 }
 
-pub fn TimeSeriesStore::count_col(self : TimeSeriesStore, start : Int64, end : Int64, col_index : Int) -> AggResult {
+///|
+pub fn TimeSeriesStore::count_col(
+  self : TimeSeriesStore,
+  start : Int64,
+  end : Int64,
+  col_index : Int,
+) -> AggResult {
   let rows = self.scan(start, end)
   let mut count = 0
-  
+
   for row in rows {
     if col_index < row.values.length() {
       match row.values[col_index] {
@@ -67,16 +86,22 @@ pub fn TimeSeriesStore::count_col(self : TimeSeriesStore, start : Int64, end : I
       }
     }
   }
-  
+
   AggResult::CountResult(count)
 }
 
-pub fn TimeSeriesStore::avg(self : TimeSeriesStore, start : Int64, end : Int64, col_index : Int) -> AggResult {
+///|
+pub fn TimeSeriesStore::avg(
+  self : TimeSeriesStore,
+  start : Int64,
+  end : Int64,
+  col_index : Int,
+) -> AggResult {
   let rows = self.scan(start, end)
-  
+
   let mut sum : Double = 0.0
   let mut count = 0
-  
+
   for row in rows {
     if col_index < row.values.length() {
       match row.values[col_index] {
@@ -92,7 +117,7 @@ pub fn TimeSeriesStore::avg(self : TimeSeriesStore, start : Int64, end : Int64, 
       }
     }
   }
-  
+
   if count > 0 {
     AggResult::FloatResult(sum / count.to_double())
   } else {
@@ -100,30 +125,40 @@ pub fn TimeSeriesStore::avg(self : TimeSeriesStore, start : Int64, end : Int64, 
   }
 }
 
-pub fn TimeSeriesStore::min(self : TimeSeriesStore, start : Int64, end : Int64, col_index : Int) -> AggResult {
+///|
+pub fn TimeSeriesStore::min(
+  self : TimeSeriesStore,
+  start : Int64,
+  end : Int64,
+  col_index : Int,
+) -> AggResult {
   let rows = self.scan(start, end)
-  
+
   let mut min_int : Int64 = 9223372036854775807
   let mut min_float : Double = 1.7976931348623157e308
   let mut has_int = false
   let mut has_float = false
-  
+
   for row in rows {
     if col_index < row.values.length() {
       match row.values[col_index] {
         @core.Value::Int(v) => {
-          if v < min_int { min_int = v }
+          if v < min_int {
+            min_int = v
+          }
           has_int = true
         }
         @core.Value::Float(v) => {
-          if v < min_float { min_float = v }
+          if v < min_float {
+            min_float = v
+          }
           has_float = true
         }
         _ => ()
       }
     }
   }
-  
+
   if has_float {
     let int_as_float = min_int.to_double()
     if has_int && int_as_float < min_float {
@@ -138,30 +173,40 @@ pub fn TimeSeriesStore::min(self : TimeSeriesStore, start : Int64, end : Int64, 
   }
 }
 
-pub fn TimeSeriesStore::max(self : TimeSeriesStore, start : Int64, end : Int64, col_index : Int) -> AggResult {
+///|
+pub fn TimeSeriesStore::max(
+  self : TimeSeriesStore,
+  start : Int64,
+  end : Int64,
+  col_index : Int,
+) -> AggResult {
   let rows = self.scan(start, end)
-  
+
   let mut max_int : Int64 = -9223372036854775808
   let mut max_float : Double = -1.7976931348623157e308
   let mut has_int = false
   let mut has_float = false
-  
+
   for row in rows {
     if col_index < row.values.length() {
       match row.values[col_index] {
         @core.Value::Int(v) => {
-          if v > max_int { max_int = v }
+          if v > max_int {
+            max_int = v
+          }
           has_int = true
         }
         @core.Value::Float(v) => {
-          if v > max_float { max_float = v }
+          if v > max_float {
+            max_float = v
+          }
           has_float = true
         }
         _ => ()
       }
     }
   }
-  
+
   if has_float {
     let int_as_float = max_int.to_double()
     if has_int && int_as_float > max_float {
@@ -175,4 +220,3 @@ pub fn TimeSeriesStore::max(self : TimeSeriesStore, start : Int64, end : Int64, 
     AggResult::NullResult
   }
 }
-

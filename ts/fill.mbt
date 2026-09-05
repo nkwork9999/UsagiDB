@@ -2,6 +2,7 @@
 // Gap Fill Method (NEW)
 // ============================================
 
+///|
 pub(all) enum FillMethod {
   Null
   Previous
@@ -9,4 +10,3 @@ pub(all) enum FillMethod {
   Linear
   Constant(@core.Value)
 } derive(Show)
-

@@ -1,4 +1,5 @@
-///| Canvas FFI — JS host assigns the active context to `globalThis.__ctx`.
+///|
+/// Canvas FFI — JS host assigns the active context to `globalThis.__ctx`.
 extern "js" fn ctx_clear(w : Double, h : Double) -> Unit =
   #|(w, h) => globalThis.__ctx.clearRect(0, 0, w, h)
 
@@ -55,7 +56,8 @@ extern "js" fn ctx_global_alpha(a : Double) -> Unit =
 extern "js" fn dom_set_text(id : String, text : String) -> Unit =
   #|(id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; }
 
-///| Session state — rebuilt whenever the user flips strategies.
+///|
+/// Session state — rebuilt whenever the user flips strategies.
 struct Session {
   store : @stream.EventStore
   mut clock_ms : Int64
@@ -69,7 +71,8 @@ struct Session {
   mut view_inited : Bool
 }
 
-///| Bucket width in ms for the current strategy. `0L` means "not downsampled".
+///|
+/// Bucket width in ms for the current strategy. `0L` means "not downsampled".
 fn bucket_ms_for(kind : Int) -> Int64 {
   match kind {
     1 => 1000L
@@ -105,19 +108,15 @@ fn make_store(kind : Int, sensor_on : Bool) -> @stream.EventStore {
   match kind {
     0 => {
       let _ = config.rule("price", @stream.KeepLastN(300))
-
     }
     1 => {
       let _ = config.rule("price", @stream.Downsample(1000L, @stream.OHLC))
-
     }
     2 => {
       let _ = config.rule("price", @stream.Downsample(5000L, @stream.OHLC))
-
     }
     _ => {
       let _ = config.rule("price", @stream.KeepAll)
-
     }
   }
   if sensor_on {
@@ -133,7 +132,8 @@ pub fn boot() -> Unit {
   g_session.val = Some(fresh_session(make_store(1, true), 0L, 1, true))
 }
 
-///| Called from JS with the simulated next price (and, if the sensor toggle
+///|
+/// Called from JS with the simulated next price (and, if the sensor toggle
 /// is on, a temperature + valve state).  Advances the internal clock by
 /// `dt_ms` so `time` stays monotonic even under a paused UI.
 pub fn tick(
@@ -161,7 +161,12 @@ pub fn set_strategy(kind : Int) -> Unit {
     None => ()
     Some(s) =>
       g_session.val = Some(
-        fresh_session(make_store(kind, s.sensor_on), s.clock_ms, kind, s.sensor_on),
+        fresh_session(
+          make_store(kind, s.sensor_on),
+          s.clock_ms,
+          kind,
+          s.sensor_on,
+        ),
       )
   }
 }
@@ -173,7 +178,12 @@ pub fn toggle_sensor() -> Unit {
     Some(s) => {
       let on = not(s.sensor_on)
       g_session.val = Some(
-        fresh_session(make_store(s.strategy_kind, on), s.clock_ms, s.strategy_kind, on),
+        fresh_session(
+          make_store(s.strategy_kind, on),
+          s.clock_ms,
+          s.strategy_kind,
+          on,
+        ),
       )
     }
   }
@@ -185,12 +195,18 @@ pub fn reset() -> Unit {
     None => ()
     Some(s) =>
       g_session.val = Some(
-        fresh_session(make_store(s.strategy_kind, s.sensor_on), 0L, s.strategy_kind, s.sensor_on),
+        fresh_session(
+          make_store(s.strategy_kind, s.sensor_on),
+          0L,
+          s.strategy_kind,
+          s.sensor_on,
+        ),
       )
   }
 }
 
-///| Main draw. JS supplies the canvas pixel dimensions so we don't hardcode.
+///|
+/// Main draw. JS supplies the canvas pixel dimensions so we don't hardcode.
 pub fn draw(width : Double, height : Double) -> Unit {
   match g_session.val {
     None => ()
@@ -308,10 +324,22 @@ fn draw_price_panel(
   // render
   match s.strategy_kind {
     0 =>
-      render_line(rows, body_x, body_y, body_w, body_h, t_min, t_span, view_min, view_span)
+      render_line(
+        rows, body_x, body_y, body_w, body_h, t_min, t_span, view_min, view_span,
+      )
     _ => {
       let bucket = bucket_ms_for(s.strategy_kind)
-      render_candles_smooth(rows, body_x, body_y, body_w, body_h, view_min, view_span, bucket, s.clock_ms)
+      render_candles_smooth(
+        rows,
+        body_x,
+        body_y,
+        body_w,
+        body_h,
+        view_min,
+        view_span,
+        bucket,
+        s.clock_ms,
+      )
     }
   }
 
@@ -356,7 +384,8 @@ fn render_line(
   ctx_stroke()
 }
 
-///| Smooth-scrolling candle layout.
+///|
+/// Smooth-scrolling candle layout.
 ///
 /// Each candle's x-position is derived from the gap between its bucket start
 /// and `clock_ms` rather than its index in the array. This means that as time
@@ -591,7 +620,11 @@ fn draw_valve_strip(
   ctx_set_font("10px system-ui")
   let rec = s.store.stats("valve").0
   let kept = rows.length()
-  ctx_fill_text("valve  ExceptionBased + heartbeat  recv=\{rec} kept=\{kept}", x + 8.0, y + 16.0)
+  ctx_fill_text(
+    "valve  ExceptionBased + heartbeat  recv=\{rec} kept=\{kept}",
+    x + 8.0,
+    y + 16.0,
+  )
 }
 
 ///|

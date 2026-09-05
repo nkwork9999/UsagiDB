@@ -1,4 +1,5 @@
-///| Produce assigns monotonic offsets starting at 0.
+///|
+/// Produce assigns monotonic offsets starting at 0.
 test "produce_assigns_offsets" {
   let log = LogStore::new()
   let o0 = log.produce("temp", @core.Value::Float(20.0))
@@ -9,7 +10,8 @@ test "produce_assigns_offsets" {
   inspect(o2, content="2")
 }
 
-///| Poll advances the consumer group's committed offset.
+///|
+/// Poll advances the consumer group's committed offset.
 test "poll_advances_offset" {
   let log = LogStore::new()
   log.subscribe("t", "g")
@@ -24,7 +26,8 @@ test "poll_advances_offset" {
   inspect(third.length(), content="0")
 }
 
-///| Two consumer groups read the same topic independently.
+///|
+/// Two consumer groups read the same topic independently.
 test "multiple_consumer_groups" {
   let log = LogStore::new()
   log.subscribe("topic", "dashboard")
@@ -42,7 +45,8 @@ test "multiple_consumer_groups" {
   inspect(log.current_offset("topic", "archive"), content="1")
 }
 
-///| Seek rewinds the offset so subsequent polls re-read.
+///|
+/// Seek rewinds the offset so subsequent polls re-read.
 test "seek_rewinds" {
   let log = LogStore::new()
   log.subscribe("t", "g")
@@ -54,7 +58,8 @@ test "seek_rewinds" {
   inspect(log.poll("t", "g", 100).length(), content="2")
 }
 
-///| Commit explicitly sets the offset to skip past records.
+///|
+/// Commit explicitly sets the offset to skip past records.
 test "commit_explicit" {
   let log = LogStore::new()
   log.subscribe("t", "g")
@@ -66,20 +71,21 @@ test "commit_explicit" {
   inspect(rest.length(), content="1") // only offset 2
 }
 
-///| max_records retention drops the oldest records on overflow.
+///|
+/// max_records retention drops the oldest records on overflow.
 test "retention_max_records" {
   let log = LogStore::new()
   log.set_retention("t", max_records=Some(3))
   for i = 0; i < 5; i = i + 1 {
     let _ = log.produce("t", @core.Value::Int(i.to_int64()))
-
   }
   let info = log.topic_info("t").unwrap()
   let (_, _, count) = info
   inspect(count, content="3")
 }
 
-///| max_age_ms retention drops records older than `now - window`.
+///|
+/// max_age_ms retention drops records older than `now - window`.
 test "retention_max_age" {
   let log = LogStore::new()
   log.set_retention("t", max_age_ms=Some(1000L))
@@ -92,7 +98,8 @@ test "retention_max_age" {
   inspect(count, content="1")
 }
 
-///| Headers and key are preserved on the record.
+///|
+/// Headers and key are preserved on the record.
 test "headers_and_key" {
   let log = LogStore::new()
   let _ = log.produce(
@@ -108,7 +115,8 @@ test "headers_and_key" {
   inspect(rows[0].headers.length(), content="2")
 }
 
-///| Bridge: log records flow into a stream EventStore as Float samples.
+///|
+/// Bridge: log records flow into a stream EventStore as Float samples.
 test "pipe_to_stream" {
   let log = LogStore::new()
   let cfg = @stream.CompactionConfig::new()
@@ -123,7 +131,8 @@ test "pipe_to_stream" {
   inspect(stream.query("price").length(), content="3")
 }
 
-///| List topics shows all created topics.
+///|
+/// List topics shows all created topics.
 test "list_topics" {
   let log = LogStore::new()
   let _ = log.produce("a", @core.Value::Null)
@@ -133,7 +142,8 @@ test "list_topics" {
   inspect(topics.length(), content="3")
 }
 
-///| Serialize → deserialize round-trip preserves topics, records, and offsets.
+///|
+/// Serialize → deserialize round-trip preserves topics, records, and offsets.
 test "serialize_deserialize_roundtrip" {
   let log = LogStore::new()
   log.set_retention("temp", max_records=Some(100))

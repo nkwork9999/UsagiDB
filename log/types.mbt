@@ -2,7 +2,8 @@
 // any `Value` can ride, plus a string key and free-form headers — closer to a
 // Kafka record than to a TS-DB change entry.
 
-///| A single record in a topic. `offset` is monotonic per topic; `timestamp`
+///|
+/// A single record in a topic. `offset` is monotonic per topic; `timestamp`
 /// is producer-supplied (may be the wall clock or a logical time).
 pub(all) struct LogRecord {
   offset : Int64
@@ -12,7 +13,8 @@ pub(all) struct LogRecord {
   headers : Array[(String, String)]
 } derive(Show)
 
-///| Per-topic retention policy. Either bound may be `None` to mean "unbounded".
+///|
+/// Per-topic retention policy. Either bound may be `None` to mean "unbounded".
 /// `max_records` is enforced eagerly on `produce`; `max_age_ms` requires an
 /// explicit `apply_retention(topic, now)` since the store has no clock.
 pub(all) struct LogRetention {

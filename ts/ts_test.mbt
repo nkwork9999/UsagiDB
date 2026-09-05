@@ -1,31 +1,32 @@
-///| Insert + scan round-trip on a single sensor stream.
+///|
+/// Insert + scan round-trip on a single sensor stream.
 test "insert_scan_basic" {
   let db = TimeSeriesStore::with_threshold(50)
   for i = 0; i < 5; i = i + 1 {
     let ts = (i * 1000).to_int64()
     let temp = 20.0 + i.to_double()
     let _ = db.insert(ts, [@core.Value::Float(temp)])
-
   }
   let rows = db.scan(0L, 10000L)
   inspect(rows.length(), content="5")
 }
 
-///| Compaction triggers once delta-store exceeds the threshold; scan must still
+///|
+/// Compaction triggers once delta-store exceeds the threshold; scan must still
 /// return everything (delta + main combined).
 test "compaction_then_scan" {
   let db = TimeSeriesStore::with_threshold(3)
   for i = 0; i < 7; i = i + 1 {
     let ts = (i * 1000).to_int64()
     let _ = db.insert(ts, [@core.Value::Int(i.to_int64())])
-
   }
   let _ = db.compact()
   let rows = db.scan(0L, 10000L)
   inspect(rows.length(), content="7")
 }
 
-///| Logical delete excludes a timestamp from subsequent scans.
+///|
+/// Logical delete excludes a timestamp from subsequent scans.
 test "delete_hides_row" {
   let db = TimeSeriesStore::with_threshold(50)
   let _ = db.insert(0L, [@core.Value::Int(100L)])
@@ -35,22 +36,27 @@ test "delete_hides_row" {
   inspect(db.scan(0L, 10000L).length(), content="1")
 }
 
-///| Filter::Eq narrows a scan to matching rows.
+///|
+/// Filter::Eq narrows a scan to matching rows.
 test "scan_where_filter" {
   let db = TimeSeriesStore::with_threshold(50)
   let _ = db.insert(0L, [@core.Value::String("a")])
   let _ = db.insert(1000L, [@core.Value::String("b")])
   let _ = db.insert(2000L, [@core.Value::String("a")])
-  let rows = db.scan_where(0L, 10000L, @core.Filter::Eq(0, @core.Value::String("a")))
+  let rows = db.scan_where(
+    0L,
+    10000L,
+    @core.Filter::Eq(0, @core.Value::String("a")),
+  )
   inspect(rows.length(), content="2")
 }
 
-///| Serialize then deserialize must reproduce the same row count.
+///|
+/// Serialize then deserialize must reproduce the same row count.
 test "serialize_deserialize_roundtrip" {
   let db = TimeSeriesStore::with_threshold(50)
   for i = 0; i < 4; i = i + 1 {
     let _ = db.insert((i * 1000).to_int64(), [@core.Value::Int(i.to_int64())])
-
   }
   let json = db.serialize()
   let restored = TimeSeriesStore::deserialize(json).unwrap()
@@ -60,7 +66,8 @@ test "serialize_deserialize_roundtrip" {
   )
 }
 
-///| Retention drops rows whose timestamp is older than `now - duration`.
+///|
+/// Retention drops rows whose timestamp is older than `now - duration`.
 test "retention_drops_old_rows" {
   let db = TimeSeriesStore::with_threshold(50)
   let _ = db.insert(0L, [@core.Value::Int(1L)])
@@ -75,14 +82,14 @@ test "retention_drops_old_rows" {
   inspect(db.scan(0L, 1000000L).length(), content="1")
 }
 
-///| Continuous aggregate registration + refresh + query.
+///|
+/// Continuous aggregate registration + refresh + query.
 test "continuous_aggregate" {
   let db = TimeSeriesStore::with_threshold(50)
   for i = 0; i < 6; i = i + 1 {
     let ts = (i * 1000).to_int64()
     let v = (10 + i).to_int64()
     let _ = db.insert(ts, [@core.Value::Int(v)])
-
   }
   db.register_aggregate("sum_1s", @core.TimeUnit::Second, 0, AggType::Sum)
   let ok = db.refresh_aggregate("sum_1s", 0L, 6000L)
@@ -92,7 +99,8 @@ test "continuous_aggregate" {
   inspect(db.list_aggregates(), content="[\"sum_1s\"]")
 }
 
-///| With CRDT disabled, insert leaves crdt_rows empty.
+///|
+/// With CRDT disabled, insert leaves crdt_rows empty.
 test "crdt_disabled_by_default" {
   let db = TimeSeriesStore::with_config(50, "siteA")
   let _ = db.insert(0L, [@core.Value::Int(1L)])
@@ -100,7 +108,8 @@ test "crdt_disabled_by_default" {
   inspect(db.crdt_enabled, content="false")
 }
 
-///| With CRDT enabled, every insert pushes a CRDTRow and bumps both clocks.
+///|
+/// With CRDT enabled, every insert pushes a CRDTRow and bumps both clocks.
 test "crdt_enabled_records_rows" {
   let db = TimeSeriesStore::with_config(50, "siteA")
   db.enable_crdt()
@@ -112,7 +121,8 @@ test "crdt_enabled_records_rows" {
   inspect(bumped, content="true")
 }
 
-///| Gap-filling produces one row per `interval_ms` slot, filling missing ones.
+///|
+/// Gap-filling produces one row per `interval_ms` slot, filling missing ones.
 test "scan_with_fill_previous" {
   let db = TimeSeriesStore::with_threshold(50)
   let _ = db.insert(0L, [@core.Value::Int(10L)])
@@ -126,7 +136,8 @@ test "scan_with_fill_previous" {
   }
 }
 
-///| Round-trip: serialize includes v0.2 fields and deserialize restores them.
+///|
+/// Round-trip: serialize includes v0.2 fields and deserialize restores them.
 test "serialize_includes_v02_fields" {
   let db = TimeSeriesStore::with_config(50, "siteB")
   db.enable_crdt()
@@ -145,7 +156,8 @@ test "serialize_includes_v02_fields" {
   inspect(restored.retention.enabled, content="true")
 }
 
-///| merge_crdt: matching ts merges (LWW), new ts appends.
+///|
+/// merge_crdt: matching ts merges (LWW), new ts appends.
 test "merge_crdt_basic" {
   let a = TimeSeriesStore::with_config(50, "siteA")
   a.enable_crdt()
@@ -154,17 +166,24 @@ test "merge_crdt_basic" {
   inspect(a.crdt_rows.length(), content="2")
   // Remote rows: one with same ts (should merge), one new.
   let remote_match = @core.CRDTRow::new(
-    0L, [@core.Value::Int(99L)], 100L, "siteB",
+    0L,
+    [@core.Value::Int(99L)],
+    100L,
+    "siteB",
   )
   let remote_new = @core.CRDTRow::new(
-    2000L, [@core.Value::Int(3L)], 101L, "siteB",
+    2000L,
+    [@core.Value::Int(3L)],
+    101L,
+    "siteB",
   )
   let merged = a.merge_crdt([remote_match, remote_new])
   inspect(merged, content="2")
   inspect(a.crdt_rows.length(), content="3")
 }
 
-///| Sync packet carries crdt_rows when CRDT enabled, empty otherwise.
+///|
+/// Sync packet carries crdt_rows when CRDT enabled, empty otherwise.
 test "sync_packet_includes_crdt_when_enabled" {
   let db = TimeSeriesStore::with_config(50, "siteA")
   db.enable_crdt()
@@ -179,7 +198,8 @@ test "sync_packet_includes_crdt_when_enabled" {
   inspect(pkt2.crdt_rows.length(), content="0")
 }
 
-///| Shape-based pull only sends changes within the time range.
+///|
+/// Shape-based pull only sends changes within the time range.
 test "shape_pull_filters_by_range" {
   let db = TimeSeriesStore::with_threshold(50)
   let _ = db.insert(100L, [@core.Value::Int(1L)])
