@@ -11,3 +11,5 @@ license = "MPL-2.0"
 keywords = [ "database", "time-series", "htap", "moonbit", "browser" ]
 
 description = "Lightweight HTAP time-series database in MoonBit, runs in the browser"
+
+preferred_target = "js"

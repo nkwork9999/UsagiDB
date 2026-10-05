@@ -22,7 +22,7 @@ test "delta_compression_ratio" {
 test "json_parse_object" {
   let input = "{\"name\":\"foo\",\"count\":42,\"active\":true}"
   let json = parse_json(input).unwrap()
-  inspect(json.get("name").unwrap().as_string(), content="Some(\"foo\")")
+  assert_eq(json.get("name").unwrap().as_string(), Some("foo"))
   inspect(json.get("count").unwrap().as_int(), content="Some(42)")
   inspect(json.get("active").unwrap().as_bool(), content="Some(true)")
 }

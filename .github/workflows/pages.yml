@@ -30,53 +30,16 @@ jobs:
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
           ls -la "$HOME/.moon/bin" || true
 
-      - name: Show environment
+      - name: Check and test
         run: |
-          set -x
-          which moon
-          moon version --all
-          env | grep -iE "moon|home" || true
-          pwd
+          moon check
+          moon test
 
-      - name: Build with maximum debug
-        run: |
-          set -x
-          # Try without rupes_recta first (legacy engine).
-          export NEW_MOON=0
-          moon clean 2>/dev/null || true
-          moon build --target js -v 2>&1 || moon build --target js 2>&1 || true
-          echo "=== after legacy build ==="
-          ls -la
-          find . -maxdepth 5 -type d -not -path "./.git*" 2>/dev/null | sort | head -50
-          find . -name "*.js" -type f -not -path "./.git/*" 2>/dev/null | head -20
-          find . -name "*.core" -type f -not -path "./.git/*" 2>/dev/null | head -10
-          # Now try with rupes_recta (experimental, what local uses).
-          export NEW_MOON=1
-          moon clean 2>/dev/null || true
-          moon build --target js 2>&1 || true
-          echo "=== after rupes_recta build ==="
-          find . -maxdepth 6 -type d -not -path "./.git*" 2>/dev/null | sort | head -50
-          find . -name "*.js" -type f -not -path "./.git/*" 2>/dev/null | head -20
+      - name: Build release JavaScript
+        run: moon build --target js --release
 
       - name: Stage demo site
-        run: |
-          set -e
-          mkdir -p _site
-          cp index.html sw.js _site/
-          cp -r web _site/
-          # Find ANY directory containing main.js produced by MoonBit.
-          MAIN_JS=$(find . -name "main.js" -type f -not -path "./.git/*" -not -path "./_site/*" 2>/dev/null | head -1)
-          if [ -z "$MAIN_JS" ]; then
-            echo "FATAL: no main.js produced anywhere on filesystem"
-            find . -name "*.js" -type f -not -path "./.git/*" 2>/dev/null
-            exit 1
-          fi
-          BUILD_DIR=$(dirname "$(dirname "$(dirname "$MAIN_JS")")")
-          echo "Detected BUILD_DIR=$BUILD_DIR (containing $MAIN_JS)"
-          mkdir -p _site/target/js/release/build
-          cp -r "$BUILD_DIR"/* _site/target/js/release/build/
-          echo "=== _site contents ==="
-          find _site -maxdepth 7 -type f | head -40
+        run: bash scripts/stage-site.sh
 
       - uses: actions/configure-pages@v5
 

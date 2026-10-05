@@ -2,3 +2,6 @@
 target/
 .mooncakes/
 .moonagent/
+_build/
+_site/
+**/pkg.generated.mbti

@@ -17,8 +17,15 @@ fn escape_json_string(s : String) -> String {
       result = result + "\\r"
     } else if c == '\t' {
       result = result + "\\t"
+    } else if c.to_int() < 32 {
+      let hex = "0123456789abcdef"
+      let code = c.to_int()
+      result = result +
+        "\\u00" +
+        hex[code / 16].to_string() +
+        hex[code % 16].to_string()
     } else {
-      result = result + c.to_string()
+      result = result + c.to_int().unsafe_to_char().to_string()
     }
   }
   result

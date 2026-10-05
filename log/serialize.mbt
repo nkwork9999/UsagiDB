@@ -13,7 +13,17 @@ fn escape_json(s : String) -> String {
       '\n' => buf.write_string("\\n")
       '\r' => buf.write_string("\\r")
       '\t' => buf.write_string("\\t")
-      _ => buf.write_char(ch)
+      _ => {
+        let code = ch.to_int()
+        if code < 32 {
+          let hex = "0123456789abcdef"
+          buf.write_string("\\u00")
+          buf.write_char(hex[code / 16].to_int().unsafe_to_char())
+          buf.write_char(hex[code % 16].to_int().unsafe_to_char())
+        } else {
+          buf.write_char(ch)
+        }
+      }
     }
   }
   buf.write_char('"')

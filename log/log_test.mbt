@@ -111,7 +111,7 @@ test "headers_and_key" {
   )
   let rows = log.peek("events", "g", 10)
   inspect(rows.length(), content="1")
-  inspect(rows[0].key, content="Some(\"user_42\")")
+  assert_eq(rows[0].key, Some("user_42"))
   inspect(rows[0].headers.length(), content="2")
 }
 

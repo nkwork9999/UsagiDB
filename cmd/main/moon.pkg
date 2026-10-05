@@ -6,8 +6,9 @@ import {
   "nkwork9999/usagidb/log",
 }
 
+pkgtype(kind: "executable")
+
 options(
-  "is-main": true,
   link: {
     "js": {
       "exports": [

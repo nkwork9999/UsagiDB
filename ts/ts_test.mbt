@@ -96,7 +96,7 @@ test "continuous_aggregate" {
   inspect(ok, content="true")
   let data = db.query_aggregate("sum_1s")
   inspect(data.length(), content="6")
-  inspect(db.list_aggregates(), content="[\"sum_1s\"]")
+  assert_eq(db.list_aggregates(), ["sum_1s"])
 }
 
 ///|

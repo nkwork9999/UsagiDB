@@ -63,6 +63,28 @@ fn JsonParser::expect_char(self : JsonParser, expected : Char) -> Bool {
 }
 
 ///|
+fn JsonParser::parse_hex_quad(self : JsonParser) -> Int? {
+  let mut code = 0
+  for i = 0; i < 4; i = i + 1 {
+    if self.pos >= self.input.length() {
+      return None
+    }
+    let c = self.consume_char().to_int()
+    let digit = if c >= 48 && c <= 57 {
+      c - 48
+    } else if c >= 65 && c <= 70 {
+      c - 55
+    } else if c >= 97 && c <= 102 {
+      c - 87
+    } else {
+      return None
+    }
+    code = code * 16 + digit
+  }
+  Some(code)
+}
+
+///|
 fn JsonParser::parse_string(self : JsonParser) -> String? {
   self.skip_whitespace()
   if self.peek_char() != '"' {
@@ -87,10 +109,40 @@ fn JsonParser::parse_string(self : JsonParser) -> String? {
         result = result + "\""
       } else if escaped == '\\' {
         result = result + "\\"
+      } else if escaped == 'u' {
+        let mut code = match self.parse_hex_quad() {
+          Some(code) => code
+          None => return None
+        }
+        if code >= 0xd800 && code <= 0xdbff {
+          if self.consume_char() != '\\' || self.consume_char() != 'u' {
+            return None
+          }
+          let low = match self.parse_hex_quad() {
+            Some(low) => low
+            None => return None
+          }
+          if low < 0xdc00 || low > 0xdfff {
+            return None
+          }
+          code = 0x10000 + (code - 0xd800) * 1024 + low - 0xdc00
+        } else if code >= 0xdc00 && code <= 0xdfff {
+          return None
+        }
+        result = result + code.unsafe_to_char().to_string()
+      } else if escaped == '/' {
+        result = result + "/"
+      } else if escaped == 'b' {
+        result = result + "\b"
+      } else if escaped == 'f' {
+        result = result + "\u000c"
       } else {
-        result = result + escaped.to_string()
+        return None
       }
     } else {
+      if c.to_int() < 32 {
+        return None
+      }
       result = result + c.to_string()
     }
   }
@@ -106,6 +158,7 @@ fn JsonParser::parse_number(self : JsonParser) -> Double? {
     self.pos = self.pos + 1
   }
 
+  let integer_start = self.pos
   while self.pos < self.input.length() {
     let c = self.peek_char()
     if c >= '0' && c <= '9' {
@@ -114,9 +167,16 @@ fn JsonParser::parse_number(self : JsonParser) -> Double? {
       break
     }
   }
+  if self.pos == integer_start {
+    return None
+  }
+  if self.pos - integer_start > 1 && self.input[integer_start] == '0' {
+    return None
+  }
 
   if self.peek_char() == '.' {
     self.pos = self.pos + 1
+    let fraction_start = self.pos
     while self.pos < self.input.length() {
       let c = self.peek_char()
       if c >= '0' && c <= '9' {
@@ -124,6 +184,9 @@ fn JsonParser::parse_number(self : JsonParser) -> Double? {
       } else {
         break
       }
+    }
+    if self.pos == fraction_start {
+      return None
     }
   }
 
@@ -132,6 +195,7 @@ fn JsonParser::parse_number(self : JsonParser) -> Double? {
     if self.peek_char() == '+' || self.peek_char() == '-' {
       self.pos = self.pos + 1
     }
+    let exponent_start = self.pos
     while self.pos < self.input.length() {
       let c = self.peek_char()
       if c >= '0' && c <= '9' {
@@ -139,6 +203,9 @@ fn JsonParser::parse_number(self : JsonParser) -> Double? {
       } else {
         break
       }
+    }
+    if self.pos == exponent_start {
+      return None
     }
   }
 
@@ -196,6 +263,26 @@ fn parse_double(s : String) -> Double {
     }
   }
 
+  if i < s.length() && (s[i] == 'e' || s[i] == 'E') {
+    i = i + 1
+    let mut exponent_negative = false
+    if i < s.length() && (s[i] == '+' || s[i] == '-') {
+      exponent_negative = s[i] == '-'
+      i = i + 1
+    }
+    let mut exponent = 0
+    while i < s.length() {
+      // Bound work and integer arithmetic even for huge exponent strings.
+      if exponent < 400 {
+        exponent = exponent * 10 + s[i].to_int() - '0'.to_int()
+      }
+      i = i + 1
+    }
+    let factor = if exponent_negative { 0.1 } else { 10.0 }
+    for j = 0; j < exponent; j = j + 1 {
+      result = result * factor
+    }
+  }
   if is_negative {
     -result
   } else {
@@ -342,7 +429,12 @@ fn JsonParser::parse_object(self : JsonParser) -> JsonValue? {
 ///|
 pub fn parse_json(input : String) -> JsonValue? {
   let parser = JsonParser::new(input)
-  parser.parse_value()
+  let value = parser.parse_value()
+  parser.skip_whitespace()
+  if parser.pos != input.length() {
+    return None
+  }
+  value
 }
 
 // ============================================

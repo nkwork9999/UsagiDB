@@ -2,8 +2,9 @@ import {
   "nkwork9999/usagidb/stream",
 }
 
+pkgtype(kind: "executable")
+
 options(
-  "is-main": true,
   link: {
     "js": {
       "exports": [
